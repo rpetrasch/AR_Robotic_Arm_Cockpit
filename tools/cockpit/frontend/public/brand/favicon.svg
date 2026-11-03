@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="AR3 Cockpit"><defs><linearGradient id="g" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0d6efd"/><stop offset="1" stop-color="#6f42c1"/></linearGradient></defs>
+  <path d="M30.06 97.94 A48 48 0 1 1 97.94 97.94" fill="none" stroke="#94a3b8" stroke-opacity=".45" stroke-width="6" stroke-linecap="round"/>
+  <path d="M30.06 97.94 A48 48 0 0 1 64 16 A48 48 0 0 1 103.1 36.4" fill="none" stroke="url(#g)" stroke-width="6" stroke-linecap="round"/>
+
+  <path d="M64 94 L50 66 L76 54 L88 47" fill="none" stroke="url(#g)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M90.2 38.1 L84.5 42.1 L91.5 51.9 L97.2 47.9" fill="none" stroke="url(#g)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="48" y="94" width="32" height="10" rx="4" fill="url(#g)"/>
+
+</svg>

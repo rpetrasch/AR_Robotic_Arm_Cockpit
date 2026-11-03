@@ -1,0 +1,2006 @@
+openapi: 3.0.3
+info:
+  title: AR3 Cockpit API
+  version: 0.1.0
+paths:
+  /api/alerts:
+    get:
+      operationId: alerts_list
+      description: |-
+        GET: alerts (``status`` open | active | acknowledged | resolved | all, ``severity``,
+        ``rule``, ``limit``). POST: acknowledge several (``ids``, ``comment``).
+      tags:
+      - alerts
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: alerts_create
+      description: |-
+        GET: alerts (``status`` open | active | acknowledged | resolved | all, ``severity``,
+        ``rule``, ``limit``). POST: acknowledge several (``ids``, ``comment``).
+      tags:
+      - alerts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AckManyRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AckManyRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AckManyRequestRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/alerts/{alert_id}/ack:
+    post:
+      operationId: alerts_ack_create
+      parameters:
+      - in: path
+        name: alert_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - alerts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AckRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AckRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AckRequestRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/alerts/rules:
+    get:
+      operationId: alerts_rules_retrieve
+      description: The rules of config/cockpit/alerts.yaml.
+      tags:
+      - alerts
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/arm/disarm:
+    post:
+      operationId: arm_disarm_create
+      tags:
+      - arm
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/arm/joints:
+    get:
+      operationId: arm_joints_retrieve
+      description: The measured joint angles, for the pre-flight pose check (§9.4
+        step 5).
+      tags:
+      - arm
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/arm/preflight/{step}:
+    post:
+      operationId: arm_preflight_create
+      description: |-
+        One pre-flight action (§9.4); ``step`` = devices | estop | workspace | homing | pose |
+        limits | arm. Every call is audited with the user.
+      parameters:
+      - in: path
+        name: step
+        schema:
+          type: string
+        required: true
+      tags:
+      - arm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreflightRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PreflightRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PreflightRequestRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/arm/state:
+    get:
+      operationId: arm_state_retrieve
+      tags:
+      - arm
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/arm/stop:
+    post:
+      operationId: arm_stop_create
+      description: 'The header''s software stop (§7.2): cancel every goal, hold. Not
+        an e-stop.'
+      tags:
+      - arm
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/audit:
+    get:
+      operationId: audit_retrieve
+      description: 'Newest first. Query: limit (≤ 500), offset, actor, action (prefix).'
+      tags:
+      - audit
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditPage'
+          description: ''
+  /api/auth/login:
+    post:
+      operationId: auth_login_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/auth/logout:
+    post:
+      operationId: auth_logout_create
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+          description: ''
+  /api/auth/me:
+    get:
+      operationId: auth_me_retrieve
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/auth/password:
+    post:
+      operationId: auth_password_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+          description: ''
+  /api/cameras:
+    get:
+      operationId: cameras_retrieve
+      tags:
+      - cameras
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/cameras/{name}/thumb:
+    get:
+      operationId: cameras_thumb_retrieve
+      description: The latest thumbnail (JPEG, ≤ 5 new ones a second, made by the
+        agent).
+      parameters:
+      - in: path
+        name: name
+        schema:
+          type: string
+        required: true
+      tags:
+      - cameras
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/checks:
+    get:
+      operationId: checks_retrieve
+      description: The checklist with the last results (runs all checks on the first
+        call).
+      tags:
+      - checks
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/checks/run:
+    post:
+      operationId: checks_run_create
+      description: Re-check all (no ids) or the given checks; returns the whole checklist.
+      tags:
+      - checks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunChecksRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RunChecksRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RunChecksRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/components:
+    get:
+      operationId: components_retrieve
+      description: |-
+        The catalogue (§3.4) with live status and whether each runs in the current mode
+        (``?mode=<id>`` previews another mode for the diagram).
+      tags:
+      - components
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/env/components/{component_id}/restart:
+    post:
+      operationId: env_components_restart_create
+      description: 'Restart a container component: the stack container, or (re)start
+        Lichtblick web.'
+      parameters:
+      - in: path
+        name: component_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - env
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/env/health:
+    get:
+      operationId: env_health_retrieve
+      tags:
+      - env
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/env/modes:
+    get:
+      operationId: env_modes_retrieve
+      description: |-
+        Every stack the cockpit can name (§3), with its CLI command and, where it can start
+        it on this host, the exact command the start job runs.
+      tags:
+      - env
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/env/start:
+    post:
+      operationId: env_start_create
+      description: |-
+        Start a mode as a job. A running stack → 409 with it, unless ``switch`` (stop and
+        switch, §3.1): then the job runs `make down` first.
+      tags:
+      - env
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StartRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StartRequestRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/env/state:
+    get:
+      operationId: env_state_retrieve
+      tags:
+      - env
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/env/stop:
+    post:
+      operationId: env_stop_create
+      description: '`make down` as a job. REAL needs ``confirm: true`` (§9.1).'
+      tags:
+      - env
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StopRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StopRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StopRequestRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/env/viewers:
+    get:
+      operationId: env_viewers_retrieve
+      tags:
+      - env
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/jobs:
+    get:
+      operationId: jobs_list
+      tags:
+      - jobs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: jobs_create
+      tags:
+      - jobs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JobRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobRequestRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/jobs/{job_id}:
+    get:
+      operationId: jobs_retrieve
+      parameters:
+      - in: path
+        name: job_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - jobs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/jobs/{job_id}/cancel:
+    post:
+      operationId: jobs_cancel_create
+      parameters:
+      - in: path
+        name: job_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - jobs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/jobs/{job_id}/log:
+    get:
+      operationId: jobs_log_retrieve
+      description: The whole log as text (download).
+      parameters:
+      - in: path
+        name: job_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - jobs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            text/plain:
+              schema:
+                type: string
+          description: ''
+  /api/logs:
+    get:
+      operationId: logs_retrieve
+      description: |-
+        Search the log buffer: ``source`` (repeat or comma-separated; ``container:`` is a
+        prefix), ``level`` (minimum), ``node``, ``q`` (text, or a regex with ``regex=1``),
+        ``from`` / ``to`` / ``before`` (ISO 8601), ``limit``; ``download=1``: as a text file
+        (``format`` is DRF's renderer switch, hence another name).
+      tags:
+      - logs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+            text/plain:
+              schema:
+                type: string
+          description: ''
+  /api/logs/sources:
+    get:
+      operationId: logs_sources_retrieve
+      tags:
+      - logs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/metrics/containers:
+    get:
+      operationId: metrics_containers_retrieve
+      tags:
+      - metrics
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/metrics/host:
+    get:
+      operationId: metrics_host_retrieve
+      description: Host CPU / memory / disk from run_monitor (1 Hz); computed here
+        when it does not run.
+      tags:
+      - metrics
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/platform:
+    get:
+      operationId: platform_retrieve
+      tags:
+      - platform
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/recordings:
+    get:
+      operationId: recordings_retrieve
+      tags:
+      - recordings
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/ros/graph:
+    get:
+      operationId: ros_graph_retrieve
+      description: Nodes, topics (type, publishers, subscribers), services, actions;
+        from the agent.
+      tags:
+      - ros
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/ros/node/{name}/params:
+    get:
+      operationId: ros_node_params_retrieve
+      parameters:
+      - in: path
+        name: name
+        schema:
+          type: string
+        required: true
+      tags:
+      - ros
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/ros/topic/rate:
+    get:
+      operationId: ros_topic_rate_retrieve
+      description: Measures one topic's rate for ``seconds`` (default 2), like `ros2
+        topic hz`.
+      tags:
+      - ros
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/runs/{run_id}:
+    get:
+      operationId: runs_retrieve
+      parameters:
+      - in: path
+        name: run_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - runs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/runs/{run_id}/abort:
+    post:
+      operationId: runs_abort_create
+      description: Abort = cancel the goal + hold (the agent), and cancel the run's
+        job.
+      parameters:
+      - in: path
+        name: run_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - runs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/runs/{run_id}/log:
+    get:
+      operationId: runs_log_retrieve
+      parameters:
+      - in: path
+        name: run_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - runs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            text/plain:
+              schema:
+                type: string
+          description: ''
+  /api/runs/{run_id}/pause:
+    post:
+      operationId: runs_pause_create
+      description: Pause before the next step (sequence), or resume.
+      parameters:
+      - in: path
+        name: run_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - runs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PauseBodyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PauseBodyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PauseBodyRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/runs/compare:
+    get:
+      operationId: runs_compare_retrieve
+      description: 'Two runs side by side (``a``, ``b``): steps, durations, evaluation,
+        metrics.'
+      tags:
+      - runs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/scenarios:
+    get:
+      operationId: scenarios_list
+      description: 'GET: every scenario with its last run. POST {yaml}: create (validated).'
+      tags:
+      - scenarios
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: scenarios_create
+      description: 'GET: every scenario with its last run. POST {yaml}: create (validated).'
+      tags:
+      - scenarios
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/scenarios/{scenario_id}:
+    get:
+      operationId: scenarios_retrieve
+      parameters:
+      - in: path
+        name: scenario_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - scenarios
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    put:
+      operationId: scenarios_update
+      parameters:
+      - in: path
+        name: scenario_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - scenarios
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    delete:
+      operationId: scenarios_destroy
+      parameters:
+      - in: path
+        name: scenario_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - scenarios
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/scenarios/{scenario_id}/duplicate:
+    post:
+      operationId: scenarios_duplicate_create
+      parameters:
+      - in: path
+        name: scenario_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - scenarios
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/scenarios/{scenario_id}/export:
+    get:
+      operationId: scenarios_export_retrieve
+      parameters:
+      - in: path
+        name: scenario_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - scenarios
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/yaml:
+              schema:
+                type: string
+          description: ''
+  /api/scenarios/{scenario_id}/reachability:
+    post:
+      operationId: scenarios_reachability_create
+      description: |-
+        IK for every move_pose target (§12.3 "Check reachability"); body ``yaml``: an unsaved
+        text instead of the stored file. Needs a running stack (any sim mode).
+      parameters:
+      - in: path
+        name: scenario_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - scenarios
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/scenarios/{scenario_id}/runs:
+    get:
+      operationId: scenario_runs_list
+      description: 'GET: the run history. POST: start a run (a job of step scenario.run).'
+      parameters:
+      - in: path
+        name: scenario_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - scenarios
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: scenarios_runs_create
+      description: 'GET: the run history. POST: start a run (a job of step scenario.run).'
+      parameters:
+      - in: path
+        name: scenario_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - scenarios
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioRunRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ScenarioRunRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ScenarioRunRequestRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/scenarios/context:
+    get:
+      operationId: scenarios_context_retrieve
+      description: Table, bins, named poses, limits, reach ring, worlds; schema; host
+        modes; capabilities.
+      tags:
+      - scenarios
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/scenarios/import:
+    post:
+      operationId: scenarios_import_create
+      description: 'A YAML upload: validated; ``replace: true`` overwrites a scenario
+        with the same id.'
+      tags:
+      - scenarios
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/scenarios/pack:
+    post:
+      operationId: scenarios_pack_create
+      tags:
+      - scenarios
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PackBodyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PackBodyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PackBodyRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/scenarios/unpack:
+    post:
+      operationId: scenarios_unpack_create
+      description: 'Step 1 of an import: the uploaded pack (``file``) → preview with
+        diffs and warnings.'
+      tags:
+      - scenarios
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: {}
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/scenarios/unpack/apply:
+    post:
+      operationId: scenarios_unpack_apply_create
+      description: 'Step 2: per scenario keep | replace | copy.'
+      tags:
+      - scenarios
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnpackApplyRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/scenarios/validate:
+    post:
+      operationId: scenarios_validate_create
+      description: Validation of an unsaved text (the editor, as you type).
+      tags:
+      - scenarios
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ScenarioYamlRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/sessions:
+    get:
+      operationId: sessions_list
+      tags:
+      - sessions
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/sessions/{session_id}:
+    get:
+      operationId: sessions_retrieve
+      parameters:
+      - in: path
+        name: session_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - sessions
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/sessions/{session_id}/gaps:
+    get:
+      operationId: sessions_gaps_retrieve
+      description: Gaps in one joint's samples (longer than 1.5 × the stored period).
+      parameters:
+      - in: path
+        name: session_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - sessions
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/sessions/current:
+    get:
+      operationId: sessions_current_retrieve
+      tags:
+      - sessions
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/sessions/current/recording:
+    post:
+      operationId: sessions_current_recording_create
+      description: REC on / off for the running session (§12a.3).
+      tags:
+      - sessions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordingRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecordingRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecordingRequestRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/setup-account:
+    get:
+      operationId: setup_account_retrieve
+      description: |-
+        First run: create the first user. Only from localhost and only while no user exists.
+        GET also sets the CSRF cookie the login and setup forms need.
+      tags:
+      - setup-account
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetupStatus'
+          description: ''
+    post:
+      operationId: setup_account_create
+      description: |-
+        First run: create the first user. Only from localhost and only while no user exists.
+        GET also sets the CSRF cookie the login and setup forms need.
+      tags:
+      - setup-account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/setup/continue:
+    post:
+      operationId: setup_continue_create
+      description: Runs the next failing step that the cockpit can fix (§8.1 "Continue
+        setup").
+      tags:
+      - setup
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/steps:
+    get:
+      operationId: steps_retrieve
+      tags:
+      - steps
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/telemetry/export:
+    get:
+      operationId: exports_list
+      description: 'GET: the exports in data/exports/. POST: an export job (step telemetry.export).'
+      tags:
+      - telemetry
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: telemetry_export_create
+      description: 'GET: the exports in data/exports/. POST: an export job (step telemetry.export).'
+      tags:
+      - telemetry
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ExportRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ExportRequestRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/telemetry/exports/{name}/{filename}:
+    get:
+      operationId: telemetry_exports_retrieve
+      parameters:
+      - in: path
+        name: filename
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: name
+        schema:
+          type: string
+        required: true
+      tags:
+      - telemetry
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/telemetry/joints:
+    get:
+      operationId: telemetry_joints_retrieve
+      description: |-
+        Joint history from the hypertable: ``session`` (required), ``run``, ``from``, ``to``,
+        ``bucket`` (seconds; default: at most 2000 points per joint), ``joints`` (comma list).
+      tags:
+      - telemetry
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/telemetry/live:
+    get:
+      operationId: telemetry_live_retrieve
+      description: The last 60 s at 10 Hz (run_ingest), for a page that opens.
+      tags:
+      - telemetry
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/telemetry/storage:
+    get:
+      operationId: telemetry_storage_retrieve
+      description: Chunks and compression per hypertable, the retention in force.
+      tags:
+      - telemetry
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/telemetry/trajectory:
+    get:
+      operationId: telemetry_trajectory_retrieve
+      description: 'The last planned trajectory (/display_planned_path) of a session
+        (default: current).'
+      tags:
+      - telemetry
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/users:
+    get:
+      operationId: users_list
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+          description: ''
+    post:
+      operationId: users_create
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/users/{user_id}:
+    delete:
+      operationId: users_destroy
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+          description: ''
+  /api/users/{user_id}/reset-password:
+    post:
+      operationId: users_reset_password_create
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+          description: ''
+components:
+  schemas:
+    AckManyRequestRequest:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: integer
+        comment:
+          type: string
+      required:
+      - ids
+    AckRequestRequest:
+      type: object
+      properties:
+        comment:
+          type: string
+    AuditEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        ts:
+          type: string
+          format: date-time
+          readOnly: true
+        actor:
+          type: string
+          maxLength: 150
+        action:
+          type: string
+          maxLength: 64
+        obj:
+          type: string
+          maxLength: 200
+        ip:
+          type: string
+          maxLength: 64
+        payload: {}
+      required:
+      - action
+      - actor
+      - id
+      - ts
+    AuditPage:
+      type: object
+      properties:
+        count:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEntry'
+      required:
+      - count
+      - results
+    CredentialsRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 150
+        password:
+          type: string
+          minLength: 1
+          maxLength: 256
+      required:
+      - password
+      - username
+    ExportRequestRequest:
+      type: object
+      properties:
+        session:
+          type: string
+          format: uuid
+        format:
+          $ref: '#/components/schemas/FormatEnum'
+        run:
+          type: string
+          format: uuid
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+      required:
+      - session
+    FormatEnum:
+      enum:
+      - parquet
+      - csv
+      type: string
+      description: |-
+        * `parquet` - parquet
+        * `csv` - csv
+    JobRequestRequest:
+      type: object
+      properties:
+        step_id:
+          type: string
+          minLength: 1
+        params:
+          type: object
+          additionalProperties: {}
+      required:
+      - step_id
+    Me:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - last_login
+      - username
+    Ok:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required:
+      - ok
+    PackBodyRequest:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+            minLength: 1
+      required:
+      - ids
+    PasswordChangeRequest:
+      type: object
+      properties:
+        old_password:
+          type: string
+          minLength: 1
+          maxLength: 256
+        new_password:
+          type: string
+          minLength: 1
+          maxLength: 256
+      required:
+      - new_password
+      - old_password
+    PasswordResetRequest:
+      type: object
+      properties:
+        password:
+          type: string
+          minLength: 1
+          maxLength: 256
+      required:
+      - password
+    PauseBodyRequest:
+      type: object
+      properties:
+        paused:
+          type: boolean
+      required:
+      - paused
+    PreflightRequestRequest:
+      type: object
+      properties:
+        action:
+          type: string
+          minLength: 1
+    RecordingRequestRequest:
+      type: object
+      properties:
+        recording:
+          type: boolean
+      required:
+      - recording
+    RunChecksRequest:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+            minLength: 1
+    ScenarioRunRequestRequest:
+      type: object
+      properties:
+        mode:
+          type: string
+        repeat:
+          type: integer
+        seed:
+          type: integer
+          nullable: true
+        keep_scene:
+          type: boolean
+        record:
+          type: boolean
+    ScenarioYamlRequest:
+      type: object
+      properties:
+        yaml:
+          type: string
+          minLength: 1
+      required:
+      - yaml
+    SetupStatus:
+      type: object
+      properties:
+        needed:
+          type: boolean
+          description: True while no user exists
+        allowed:
+          type: boolean
+          description: True when the request comes from localhost
+      required:
+      - allowed
+      - needed
+    StartRequestRequest:
+      type: object
+      properties:
+        mode:
+          type: string
+          minLength: 1
+        lichtblick:
+          type: boolean
+        switch:
+          type: boolean
+      required:
+      - mode
+    StopRequestRequest:
+      type: object
+      properties:
+        confirm:
+          type: boolean
+    UnpackApplyRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          minLength: 1
+        decisions:
+          type: object
+          additionalProperties: {}
+      required:
+      - decisions
+      - token
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        date_joined:
+          type: string
+          format: date-time
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - username
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

@@ -1,0 +1,181 @@
+# Dev containers, split by host (SPEC §4, Phase 0b). Run from the repo root:
+#
+#   docker compose -f docker/compose.yaml run --rm dev          # linux: shell, X11, /dev
+#   docker compose -f docker/compose.yaml run --rm dev-gpu      # linux + NVIDIA GPU
+#   AR3_MODE=sim docker compose -f docker/compose.yaml up linux # = make sim-linux (windows)
+#   docker compose -f docker/compose.yaml --profile linux up zenohd   # Zenoh router (Workstation A)
+#   AR3_MODE=sim docker compose -f docker/compose.yaml --profile mac up mac   # = make sim-mac
+#   docker compose -f docker/compose.yaml --profile vnc up vnc  # RViz in the browser, :6080
+#   docker compose -f docker/compose.yaml --profile mac up remote   # = make remote (REMOTE)
+#   docker compose -f docker/compose.yaml --profile viewers up -d lichtblick   # Lichtblick web
+#   ./cockpit.sh                 # starts the cockpit profile (DB + Redis) itself
+#
+# Naming a service on the command line enables its profile, so `run dev` keeps
+# working without `--profile linux`. Site-specific values (ROS_RMW, the Zenoh
+# router address) go into docker/.env; see docker/.env.example.
+
+name: ar3
+
+x-common: &common
+  image: ar3-dev
+  build: {context: .., dockerfile: docker/Dockerfile, target: dev}
+  working_dir: /ar3_ws
+  stdin_open: true
+  tty: true
+
+x-env: &env
+  ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+  AR3_CONFIG_DIR: /ar3_ws/config
+  # Linux single host: Fast DDS. Remote Mac <-> Workstation A: rmw_zenoh_cpp.
+  RMW_IMPLEMENTATION: ${ROS_RMW:-rmw_fastrtps_cpp}
+  # ar3_cockpit_agent (port 8790): the Makefile passes the token from ~/.ar3cockpit/agent.token.
+  # COCKPIT_REMOTE_MOTION=1 (Workstation A): remote clients may send motion (spec_cockpit §9.5).
+  COCKPIT_AGENT_TOKEN: ${COCKPIT_AGENT_TOKEN:-}
+  COCKPIT_REMOTE_MOTION: ${COCKPIT_REMOTE_MOTION:-0}
+
+# Mac/VNC containers reach Workstation A's zenohd as a Zenoh client (works
+# through Docker's NAT). Only used when ROS_RMW=rmw_zenoh_cpp.
+x-zenoh-client: &zenoh-client
+  ZENOH_CONFIG_OVERRIDE: mode="client";connect/endpoints=["tcp/${ZENOH_ROUTER:-host.docker.internal}:${ZENOH_PORT:-7447}"]
+
+services:
+  # --- linux profile: Workstation A/B (host network, devices, X11, GPU) ---
+  dev:
+    <<: *common
+    profiles: [linux]
+    volumes:
+      - ..:/ar3_ws
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev:/dev
+    # ttyACM (166), ttyUSB (188), video (81): Teensy, Arduino, cameras.
+    device_cgroup_rules: ["c 166:* rmw", "c 188:* rmw", "c 81:* rmw"]
+    environment:
+      <<: *env
+      DISPLAY: ${DISPLAY:-:0}
+    network_mode: host
+    ipc: host
+
+  dev-gpu:
+    extends: dev
+    profiles: [linux]
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: all
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: all, capabilities: [gpu]}]
+
+  # Linux stacks (make up-linux / sim-linux): the dev container running the bringup itself,
+  # with native RViz (and Gazebo GUI) windows on the host's X display. AR3_HEADLESS=1: no
+  # windows, foxglove_bridge only. linux-gpu: the same on an NVIDIA GPU.
+  linux:
+    extends: dev
+    profiles: [linux]
+    environment: &linux-env
+      AR3_MODE: ${AR3_MODE:-mock}
+      AR3_HEADLESS: ${AR3_HEADLESS:-0}
+    command: docker/launch.sh
+
+  linux-gpu:
+    extends: dev-gpu
+    profiles: [linux]
+    environment: *linux-env
+    command: docker/launch.sh
+
+  # Zenoh router for remote clients (the Mac). Listens on tcp/7447 on the host.
+  zenohd:
+    <<: *common
+    profiles: [linux]
+    volumes: [..:/ar3_ws]
+    environment:
+      <<: *env
+    network_mode: host
+    command: ros2 run rmw_zenoh_cpp rmw_zenohd
+
+  # --- mac profile: Docker Desktop / OrbStack (no devices, no GPU, bridge net) ---
+  mac:
+    <<: *common
+    profiles: [mac]
+    volumes: [..:/ar3_ws]
+    environment:
+      <<: [*env, *zenoh-client]
+      AR3_MODE: ${AR3_MODE:-mock}
+      COCKPIT_AGENT_BIND: 0.0.0.0   # inside the container; published on 127.0.0.1 only
+    ports: ["8765:8765", "127.0.0.1:8790:8790"]   # foxglove_bridge -> Lichtblick; agent
+    command: >-
+      docker/launch.sh headless:=true viz:=foxglove use_software_rendering:=true
+
+  # --- vnc profile: RViz MotionPlanning in the browser (any host, both arches) ---
+  vnc:
+    <<: *common
+    image: ar3-dev-vnc
+    build: {context: .., dockerfile: docker/Dockerfile, target: vnc}
+    profiles: [vnc]
+    volumes: [..:/ar3_ws]
+    environment:
+      <<: [*env, *zenoh-client]
+      AR3_MODE: ${AR3_MODE:-mock}
+      COCKPIT_AGENT_BIND: 0.0.0.0
+    ports: ["6080:6080", "8765:8765", "127.0.0.1:8790:8790"]
+    shm_size: 512m
+    command: >-
+      docker/launch.sh gz_gui:=false viz:=rviz use_software_rendering:=true
+
+  # REMOTE (make remote): no robot of its own. Only the cockpit agent runs, as a Zenoh client of
+  # Workstation A's zenohd (ZENOH_ROUTER in docker/.env), so the Mac's cockpit sees A's graph.
+  remote:
+    <<: *common
+    profiles: [mac]
+    volumes: [..:/ar3_ws]
+    environment:
+      <<: [*env, *zenoh-client]
+      RMW_IMPLEMENTATION: rmw_zenoh_cpp
+      AR3_MODE: remote
+      COCKPIT_AGENT_BIND: 0.0.0.0
+    ports: ["127.0.0.1:8790:8790"]
+    command: docker/launch.sh
+
+  # --- viewers profile: Lichtblick in the browser (any host), :8080 ---
+  # Static web app; the browser connects to foxglove_bridge (:8765) itself. The repo layout is
+  # mounted as the default layout (the image's entrypoint reads it).
+  lichtblick:
+    image: ghcr.io/lichtblick-suite/lichtblick:1.30.0
+    profiles: [viewers]
+    ports: ["${LICHTBLICK_PORT:-8080}:8080"]
+    volumes: [../config/lichtblick/ar3_default.json:/lichtblick/default-layout.json:ro]
+    restart: unless-stopped
+
+  # --- cockpit profile: database + Redis of the AR3 Cockpit (docs/manual/cockpit.md) ---
+  # Independent of the ROS stacks. Started by ./cockpit.sh, which exports the password
+  # from <repo>/.env. Both ports are published on 127.0.0.1 only.
+  cockpit-db:
+    image: timescale/timescaledb-ha:pg17.11-ts2.31.0   # PostgreSQL 17 + TimescaleDB + pgvector
+    profiles: [cockpit]
+    environment:
+      POSTGRES_DB: ${COCKPIT_DB_NAME:-ar3cockpit}
+      POSTGRES_USER: ${COCKPIT_DB_USER:-ar3cockpit}
+      # Not :? (required): compose interpolates every service, so it would break `run dev`.
+      POSTGRES_PASSWORD: ${COCKPIT_DB_PASSWORD:-}
+    ports: ["127.0.0.1:${COCKPIT_DB_PORT:-5445}:5432"]
+    volumes: [ar3cockpit_pgdata:/home/postgres/pgdata]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  cockpit-redis:
+    image: redis:7.4.11-alpine
+    profiles: [cockpit]
+    ports: ["127.0.0.1:${COCKPIT_REDIS_PORT:-6380}:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+volumes:
+  ar3cockpit_pgdata:
+    name: ar3cockpit_pgdata

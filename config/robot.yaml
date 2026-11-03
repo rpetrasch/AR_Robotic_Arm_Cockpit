@@ -1,0 +1,31 @@
+# Site-specific robot configuration.
+# Frames: world (floor) -> table (centre of the table top, z up) -> base_link.
+
+table:
+  # Pose of the `table` frame in `world`. z is the height of the table top.
+  xyz: [0.0, 0.0, 0.75]
+  rpy: [0.0, 0.0, 0.0]
+  # Table top extent along x and y; the table is modelled as a solid block
+  # from the floor to the top, so its height is xyz[2].
+  size: [1.0, 0.8]
+
+mount:
+  # Pose of the robot `base_link` in the `table` frame.
+  # Yaw 90 deg: the arm's zero pose then points along +x of the table.
+  xyz: [-0.32, 0.0, 0.0]
+  rpy: [0.0, 0.0, 1.5708]
+
+# Joint position limits in degrees (lower, upper). Stock AR3 values.
+joint_limits:
+  joint_1: [-170.0, 170.0]
+  joint_2: [-42.0, 90.0]
+  joint_3: [-89.0, 52.0]
+  joint_4: [-165.0, 165.0]
+  joint_5: [-105.0, 105.0]
+  joint_6: [-155.0, 155.0]
+
+# Default MoveIt velocity/acceleration scaling (fraction of joint limits).
+# SPEC §10: defaults are 0.2; change them here, never in code.
+motion:
+  velocity_scaling: 0.2
+  acceleration_scaling: 0.2

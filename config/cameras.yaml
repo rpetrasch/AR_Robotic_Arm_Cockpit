@@ -1,0 +1,23 @@
+# Camera mounts and image parameters.
+# `xyz`/`rpy` give the pose of `<name>_link` in `parent`, using the ROS body
+# convention (x forward along the viewing direction). The optical frame
+# `<name>_optical` (z forward, x right, y down) is derived from it.
+# These are nominal mount poses; calibrated extrinsics (Phase 2) replace them.
+
+cam_overhead:
+  parent: world
+  xyz: [0.0, 0.0, 1.55]
+  rpy: [0.0, 1.5708, 0.0]   # looking straight down
+  width: 1280
+  height: 720
+  horizontal_fov: 1.20      # [rad]
+  rate: 15.0                # [Hz], simulation only
+
+cam_wrist:
+  parent: tool0
+  xyz: [0.0, -0.045, 0.02]
+  rpy: [0.0, -1.5708, 0.0]  # looking along the tool axis
+  width: 640
+  height: 480
+  horizontal_fov: 1.20
+  rate: 15.0

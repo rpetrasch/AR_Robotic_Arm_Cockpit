@@ -1,0 +1,311 @@
+# Component catalogue of the AR3 Cockpit (docs/specs/spec_cockpit.md §3.4).
+# One source for the Environment → Components page, docs/manual/cockpit-components.md (generated:
+# `make cockpit-docs`, a test checks it is current) and the assistant's index.
+#
+# Fields:
+#   runs_in: where the component runs. Stack kinds: every_stack (any ROS stack except remote),
+#            gazebo (SIM · Gazebo), vnc (RViz in the browser), linux_windows (native windows),
+#            real (REAL, SPEC Phase 1), remote (REMOTE on the Mac); outside the stacks:
+#            cockpit (always, with the cockpit), optional (started on its own).
+#   health:  the row id in the health table (§9.2), or null.
+#   layer:   column in the diagram: browser | host | stack | infra.
+#   links:   edges in the diagram: {to, label}.
+#   cli:     commands to copy (principle 8). <service> is the running stack's compose service.
+
+- id: ros
+  name: ROS core container
+  what: >-
+    The Docker container that runs the whole ROS 2 stack: robot description, ros2_control,
+    MoveIt, foxglove_bridge and the cockpit agent. Which compose service it is (mac, vnc,
+    linux, linux-gpu, remote) decides the mode.
+  runs_in: [every_stack, remote]
+  ports: []
+  depends: []
+  health: ros
+  layer: stack
+  links: []
+  cli:
+    start: make sim-mac   # or up-mac, vnc, up-linux, sim-linux, remote (see Modes)
+    stop: make down
+    logs: docker compose -f docker/compose.yaml logs -f <service>
+    status: docker compose -f docker/compose.yaml ps
+    shell: docker compose -f docker/compose.yaml exec <service> bash
+  docs: docs/manual/usage-mac.md
+
+- id: gazebo
+  name: Gazebo server
+  what: >-
+    Gazebo Harmonic simulates the physics and the two cameras. Headless on the Mac and in the
+    vnc stack (watch it through RViz or Lichtblick); with a window from make sim-linux.
+    ros_gz_bridge brings /clock and the camera topics into ROS.
+  runs_in: [gazebo]
+  ports: []
+  depends: [ros]
+  health: gazebo
+  layer: stack
+  links: [{to: ros2_control, label: gz_ros2_control}]
+  cli:
+    start: make sim-mac
+    stop: make down
+    logs: docker compose -f docker/compose.yaml logs -f <service> | grep -i gz
+    status: docker compose -f docker/compose.yaml exec <service> bash -ic 'ros2 topic hz /clock'
+    shell: docker compose -f docker/compose.yaml exec <service> bash
+  docs: docs/manual/usage-sim.md
+
+- id: move_group
+  name: move_group (MoveIt 2)
+  what: >-
+    Plans collision-free motions for the arm and the gripper and sends them to the
+    controllers. RViz's MotionPlanning panel, move_to_named and the cockpit's scenarios (C5)
+    all talk to its /move_action.
+  runs_in: [every_stack, real]
+  ports: []
+  depends: [ros2_control]
+  health: move_group
+  layer: stack
+  links: [{to: ros2_control, label: FollowJointTrajectory}]
+  cli:
+    start: make up-mac
+    stop: make down
+    logs: docker compose -f docker/compose.yaml logs -f <service> | grep move_group
+    status: docker compose -f docker/compose.yaml exec <service> bash -ic 'ros2 action list'
+    shell: docker compose -f docker/compose.yaml exec <service> bash -ic 'ros2 run ar3_bringup move_to_named home'
+  docs: src/ar3_moveit_config/README.md
+
+- id: ros2_control
+  name: ros2_control / controllers
+  what: >-
+    The controller manager with joint_state_broadcaster, joint_trajectory_controller and
+    gripper_controller. In mock it drives mock_components (no physics), in sim Gazebo, on the
+    real arm the hardware interface (SPEC Phase 1).
+  runs_in: [every_stack, real]
+  ports: []
+  depends: [ros]
+  health: controllers
+  layer: stack
+  links: []
+  cli:
+    start: make up-mac
+    stop: make down
+    logs: docker compose -f docker/compose.yaml logs -f <service> | grep -i controller
+    status: docker compose -f docker/compose.yaml exec <service> bash -ic 'ros2 control list_controllers'
+    shell: docker compose -f docker/compose.yaml exec <service> bash
+  docs: src/ar3_bringup/README.md
+
+- id: ar3_safety
+  name: ar3_safety
+  what: >-
+    Watches the e-stop, the limits and the heartbeat on the real arm and owns the arm state
+    (NOT HOMED, HOMED, ARMED, E-STOP). Arrives with SPEC Phase 1; until then REAL cannot start.
+  runs_in: [real]
+  ports: []
+  depends: [hardware]
+  health: safety
+  layer: stack
+  links: [{to: hardware, label: hold / e-stop}]
+  cli:
+    start: "# SPEC Phase 1"
+    stop: make down
+    logs: docker compose -f docker/compose.yaml logs -f <service> | grep safety
+    status: docker compose -f docker/compose.yaml exec <service> bash -ic 'ros2 topic echo /safety/status --once'
+    shell: docker compose -f docker/compose.yaml exec <service> bash
+  docs: docs/specs/spec_cockpit.md
+
+- id: hardware
+  name: Hardware interface
+  what: >-
+    The ros2_control plugin that talks to the Teensy 4.1 over USB serial (ar3_hardware, SPEC
+    Phase 1). Not built yet; the serial protocol and pin map are open owner items.
+  runs_in: [real]
+  ports: []
+  depends: [ros]
+  health: null
+  layer: stack
+  links: []
+  cli:
+    start: "# SPEC Phase 1"
+    stop: make down
+    logs: docker compose -f docker/compose.yaml logs -f <service>
+    status: ls -l /dev/ttyACM*
+    shell: docker compose -f docker/compose.yaml exec <service> bash
+  docs: docs/specs/spec_v0.4.md
+
+- id: foxglove_bridge
+  name: foxglove_bridge
+  what: >-
+    A WebSocket server (port 8765) that serves the ROS graph to Lichtblick, web or desktop. It
+    runs in every stack, so Lichtblick can always connect, also next to RViz.
+  runs_in: [every_stack]
+  ports: [8765]
+  depends: [ros]
+  health: foxglove_bridge
+  layer: stack
+  links: []
+  cli:
+    start: make up-mac
+    stop: make down
+    logs: docker compose -f docker/compose.yaml logs -f <service> | grep foxglove
+    status: nc -vz 127.0.0.1 8765
+    shell: docker compose -f docker/compose.yaml exec <service> bash
+  docs: docs/manual/usage-mac.md
+
+- id: lichtblick
+  name: Lichtblick (web / desktop)
+  what: >-
+    The 3D view, plots and camera images in the browser (:8080, container from
+    ghcr.io/lichtblick-suite/lichtblick with the AR3 layout as default) or in the desktop
+    app. Either one connects to foxglove_bridge at ws://<host>:8765.
+  runs_in: [optional]
+  ports: [8080]
+  depends: [foxglove_bridge]
+  health: lichtblick_web
+  layer: browser
+  links: [{to: foxglove_bridge, label: "ws :8765"}]
+  cli:
+    start: make lichtblick
+    stop: make down
+    logs: docker compose -f docker/compose.yaml logs -f lichtblick
+    status: curl -sI http://127.0.0.1:8080/ | head -1
+    shell: docker compose -f docker/compose.yaml exec lichtblick sh
+  docs: docs/manual/usage-mac.md
+
+- id: novnc
+  name: noVNC + RViz
+  what: >-
+    RViz with MoveIt's MotionPlanning panel on a virtual desktop, shown in the browser at
+    :6080. Software rendering; plan and execute here and the arm moves (in Gazebo with
+    AR3_MODE=sim).
+  runs_in: [vnc]
+  ports: [6080]
+  depends: [move_group]
+  health: novnc
+  layer: browser
+  links: [{to: move_group, label: MotionPlanning}]
+  cli:
+    start: make vnc
+    stop: make down
+    logs: docker compose -f docker/compose.yaml logs -f vnc
+    status: curl -sI http://127.0.0.1:6080/vnc.html | head -1
+    shell: docker compose -f docker/compose.yaml exec vnc bash
+  docs: docs/manual/usage-mac.md
+
+- id: zenohd
+  name: zenohd
+  what: >-
+    The Zenoh router on Workstation A (tcp/7447). The Mac's containers join A's ROS graph as
+    Zenoh clients through it (REMOTE). Needs ROS_RMW=rmw_zenoh_cpp on both sides.
+  runs_in: [remote]
+  ports: [7447]
+  depends: []
+  health: zenohd
+  layer: infra
+  links: []
+  cli:
+    start: make zenohd   # on Workstation A
+    stop: docker compose -f docker/compose.yaml stop zenohd
+    logs: docker compose -f docker/compose.yaml logs -f zenohd
+    status: nc -vz <ZENOH_ROUTER> 7447
+    shell: docker compose -f docker/compose.yaml run --rm mac ros2 topic list
+  docs: docs/manual/usage-mac.md
+
+- id: agent
+  name: ar3_cockpit_agent
+  what: >-
+    The cockpit's adapter inside the ROS stack (HTTP on 127.0.0.1:8790, token from
+    ~/.ar3cockpit/agent.token): reports health and controllers, runs the software stop.
+    Started by the bringup; in REMOTE it is the only node on the Mac.
+  runs_in: [every_stack, remote]
+  ports: [8790]
+  depends: [ros]
+  health: agent
+  layer: stack
+  links: [{to: move_group, label: cancel goals}, {to: ros2_control, label: list / hold}]
+  cli:
+    start: make up-mac
+    stop: make down
+    logs: docker compose -f docker/compose.yaml logs -f <service> | grep cockpit_agent
+    status: 'curl -s -H "Authorization: Bearer $(cat ~/.ar3cockpit/agent.token)" http://127.0.0.1:8790/health'
+    shell: docker compose -f docker/compose.yaml exec <service> bash
+  docs: src/ar3_cockpit_agent/README.md
+
+- id: cockpit_db
+  name: PostgreSQL / TimescaleDB
+  what: >-
+    The cockpit's database (users, audit log, jobs; telemetry from C4). Compose profile
+    cockpit, port 127.0.0.1:5445, started by ./cockpit.sh. Not a ROS stack.
+  runs_in: [cockpit]
+  ports: [5445]
+  depends: []
+  health: cockpit_db
+  layer: infra
+  links: []
+  cli:
+    start: ./cockpit.sh
+    stop: ./cockpit.sh down
+    logs: docker compose -f docker/compose.yaml logs -f cockpit-db
+    status: docker compose -f docker/compose.yaml ps cockpit-db
+    shell: docker compose -f docker/compose.yaml exec cockpit-db psql -U ar3cockpit ar3cockpit
+  docs: docs/manual/cockpit.md
+
+- id: cockpit_redis
+  name: Redis
+  what: >-
+    Message bus of the cockpit's web process and workers (live logs, header status). Compose
+    profile cockpit, port 127.0.0.1:6380.
+  runs_in: [cockpit]
+  ports: [6380]
+  depends: []
+  health: cockpit_redis
+  layer: infra
+  links: []
+  cli:
+    start: ./cockpit.sh
+    stop: ./cockpit.sh down
+    logs: docker compose -f docker/compose.yaml logs -f cockpit-redis
+    status: docker compose -f docker/compose.yaml exec cockpit-redis redis-cli ping
+    shell: docker compose -f docker/compose.yaml exec cockpit-redis redis-cli
+  docs: docs/manual/cockpit.md
+
+- id: cockpit
+  name: Cockpit web / workers
+  what: >-
+    This app: Django on 127.0.0.1:8400 plus the workers run_jobs (runs steps like make
+    sim-mac), run_monitor (health, alerts, metrics and logs every 2 s) and run_ingest
+    (telemetry into TimescaleDB). Runs natively on the host, not in Docker, so it sees the
+    real OS and needs no Docker socket in a container.
+  runs_in: [cockpit]
+  ports: [8400]
+  depends: [cockpit_db, cockpit_redis]
+  health: null
+  layer: host
+  links:
+    - {to: agent, label: "HTTP :8790"}
+    - {to: ros, label: make / docker}
+    - {to: cockpit_db, label: SQL}
+    - {to: cockpit_redis, label: pub/sub}
+  cli:
+    start: ./cockpit.sh
+    stop: Ctrl-C in its terminal
+    logs: ./cockpit.sh   # logs go to the terminal
+    status: make status-json
+    shell: make doctor
+  docs: docs/manual/cockpit.md
+
+- id: ollama
+  name: Ollama
+  what: >-
+    Local LLM server on the host (127.0.0.1:11434) for the assistant. Optional;
+    install it yourself, the cockpit pulls the models.
+  runs_in: [optional]
+  ports: [11434]
+  depends: []
+  health: ollama
+  layer: host
+  links: []
+  cli:
+    start: ollama serve
+    stop: "# quit the Ollama app"
+    logs: "# macOS: ~/.ollama/logs/server.log"
+    status: curl -s http://127.0.0.1:11434/api/tags
+    shell: ollama list
+  docs: docs/specs/spec_cockpit.md

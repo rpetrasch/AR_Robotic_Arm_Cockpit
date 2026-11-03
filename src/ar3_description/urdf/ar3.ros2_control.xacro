@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<!--
+  ros2_control tags for the arm and the gripper.
+  hardware:
+    mock - mock_components/GenericSystem (state mirrors command)
+    gz   - gz_ros2_control/GazeboSimSystem
+  Real hardware is added in Phase 1 (ar3_hardware); until then `real` is rejected.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="ar3_ros2_control" params="hardware prefix initial_positions">
+    <xacro:if value="${hardware == 'mock'}">
+      <xacro:property name="plugin" value="mock_components/GenericSystem"/>
+    </xacro:if>
+    <xacro:if value="${hardware == 'gz'}">
+      <xacro:property name="plugin" value="gz_ros2_control/GazeboSimSystem"/>
+    </xacro:if>
+    <xacro:unless value="${hardware in ('mock', 'gz')}">
+      ${xacro.fatal("ar3_ros2_control: unsupported hardware '" + hardware + "' (expected mock|gz)")}
+    </xacro:unless>
+
+    <ros2_control name="ar3_arm" type="system">
+      <hardware>
+        <plugin>${plugin}</plugin>
+      </hardware>
+      <xacro:macro name="ar3_rc_joint" params="n">
+        <joint name="${prefix}joint_${n}">
+          <command_interface name="position"/>
+          <state_interface name="position">
+            <param name="initial_value">${initial_positions['joint_' + str(n)]}</param>
+          </state_interface>
+          <state_interface name="velocity">
+            <param name="initial_value">0.0</param>
+          </state_interface>
+        </joint>
+      </xacro:macro>
+      <xacro:ar3_rc_joint n="1"/>
+      <xacro:ar3_rc_joint n="2"/>
+      <xacro:ar3_rc_joint n="3"/>
+      <xacro:ar3_rc_joint n="4"/>
+      <xacro:ar3_rc_joint n="5"/>
+      <xacro:ar3_rc_joint n="6"/>
+    </ros2_control>
+
+    <ros2_control name="ar3_gripper" type="system">
+      <hardware>
+        <plugin>${plugin}</plugin>
+      </hardware>
+      <joint name="${prefix}gripper_jaw1_joint">
+        <command_interface name="position"/>
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="velocity">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+      </joint>
+      <!-- jaw2 mimics jaw1 (URDF <mimic>); ros2_control fills its state. -->
+      <joint name="${prefix}gripper_jaw2_joint">
+        <state_interface name="position">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+        <state_interface name="velocity">
+          <param name="initial_value">0.0</param>
+        </state_interface>
+      </joint>
+    </ros2_control>
+  </xacro:macro>
+</robot>

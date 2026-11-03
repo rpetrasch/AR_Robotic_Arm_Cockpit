@@ -1,0 +1,51 @@
+[project]
+name = "ar3cockpit"
+version = "0.1.0"
+description = "AR3 Cockpit backend: Django + Channels over the repo's Make targets (docs/specs/spec_cockpit.md)"
+requires-python = ">=3.12"
+dependencies = [
+  "django>=5.2,<5.3",
+  "djangorestframework>=3.16,<3.17",
+  "drf-spectacular>=0.28",
+  "channels>=4.2,<5",
+  "channels-redis>=4.2,<5",
+  "redis>=5.2",
+  "uvicorn[standard]>=0.34",
+  "psycopg[binary]>=3.2,<4",
+  "argon2-cffi>=23.1",
+  "pyyaml>=6.0.3",
+  "psutil>=7.0",
+  "pyarrow>=21.0",
+  "websockets>=15",
+  "jsonschema>=4.23",
+  "anthropic>=1.15,<2",
+]
+
+[project.scripts]
+ar3ctl = "ar3ctl.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-django>=4.9",
+  "pytest-asyncio>=0.25",
+  "daphne>=4.2.3",
+  "pytest-env>=1.8.4",
+  "pandas>=2.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["config", "core", "accounts", "environment", "monitoring", "setup", "telemetry", "scenarios", "assistant", "ar3ctl"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+# pytest-env sets these before pytest-django sets Django up (a conftest.py would be too late):
+# the test stage uses in-memory Channels/cache and ignores a developer's .env overrides.
+env = ["COCKPIT_ENV=test", "COCKPIT_FAKE=0"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

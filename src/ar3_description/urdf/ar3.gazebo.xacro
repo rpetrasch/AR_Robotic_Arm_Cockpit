@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!--
+  Gazebo (Harmonic) extras: camera sensors and the gz_ros2_control plugin.
+  Only included when hardware == gz. Image topics are gz topics; ar3_gazebo
+  bridges them to ROS as /<name>/image_raw and /<name>/camera_info.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="ar3_gz_camera" params="name cam">
+    <gazebo reference="${name}_link">
+      <sensor name="${name}" type="camera">
+        <always_on>true</always_on>
+        <update_rate>${cam['rate']}</update_rate>
+        <topic>${name}/image_raw</topic>
+        <gz_frame_id>${name}_optical</gz_frame_id>
+        <camera>
+          <camera_info_topic>${name}/camera_info</camera_info_topic>
+          <horizontal_fov>${cam['horizontal_fov']}</horizontal_fov>
+          <image>
+            <width>${cam['width']}</width>
+            <height>${cam['height']}</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip><near>0.02</near><far>5.0</far></clip>
+        </camera>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="ar3_gazebo" params="cameras controllers_file">
+    <xacro:ar3_gz_camera name="cam_overhead" cam="${cameras['cam_overhead']}"/>
+    <xacro:ar3_gz_camera name="cam_wrist" cam="${cameras['cam_wrist']}"/>
+
+    <gazebo>
+      <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+        <parameters>${controllers_file}</parameters>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+</robot>

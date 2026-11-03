@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Semantic description of the AR3 workcell.
+    xacro ar3.srdf.xacro config_dir:=<path to config/>
+  Arm/gripper collision pairs were seeded from upstream annin_ar4_moveit_config and
+  extended with the "Never" pairs that moveit_setup_assistant's collisions_updater
+  found (20000 samples) between links of the arm, gripper and wrist camera.
+  Pairs between moving links and the table, bins or overhead camera are deliberately
+  NOT disabled even where sampling found no contact: those checks stay on for safety.
+-->
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="ar3">
+  <xacro:arg name="config_dir" default=""/>
+  <xacro:property name="bins_cfg" value="${xacro.load_yaml('$(arg config_dir)' + '/bins.yaml')}"/>
+
+  <group name="arm">
+    <chain base_link="base_link" tip_link="gripper_tcp"/>
+  </group>
+  <group name="gripper">
+    <link name="gripper_base_link"/>
+    <link name="gripper_jaw1_link"/>
+    <link name="gripper_jaw2_link"/>
+    <joint name="gripper_jaw1_joint"/>
+    <passive_joint name="gripper_jaw2_joint"/>
+  </group>
+
+  <!-- Named poses (rad).
+       home    - all joints zero (calibration reference)
+       observe - TCP ~0.40 m above the workspace centre, tool (and wrist camera) pointing down
+       stow    - folded back over the base, out of the overhead camera's view of the workspace -->
+  <group_state name="home" group="arm">
+    <joint name="joint_1" value="0"/>
+    <joint name="joint_2" value="0"/>
+    <joint name="joint_3" value="0"/>
+    <joint name="joint_4" value="0"/>
+    <joint name="joint_5" value="0"/>
+    <joint name="joint_6" value="0"/>
+  </group_state>
+  <group_state name="observe" group="arm">
+    <joint name="joint_1" value="0"/>
+    <joint name="joint_2" value="0.0524"/>
+    <joint name="joint_3" value="-0.1222"/>
+    <joint name="joint_4" value="0"/>
+    <joint name="joint_5" value="1.6406"/>
+    <joint name="joint_6" value="0"/>
+  </group_state>
+  <group_state name="stow" group="arm">
+    <joint name="joint_1" value="0"/>
+    <joint name="joint_2" value="-0.5236"/>
+    <joint name="joint_3" value="0.7854"/>
+    <joint name="joint_4" value="0"/>
+    <joint name="joint_5" value="1.3090"/>
+    <joint name="joint_6" value="0"/>
+  </group_state>
+  <group_state name="open" group="gripper">
+    <joint name="gripper_jaw1_joint" value="0.014"/>
+  </group_state>
+  <group_state name="closed" group="gripper">
+    <joint name="gripper_jaw1_joint" value="0.0"/>
+  </group_state>
+
+  <end_effector name="gripper" parent_link="tool0" group="gripper" parent_group="arm"/>
+
+  <!-- Arm -->
+  <disable_collisions link1="base_link" link2="link_1" reason="Adjacent"/>
+  <disable_collisions link1="link_1" link2="link_2" reason="Adjacent"/>
+  <disable_collisions link1="link_1" link2="link_3" reason="Never"/>
+  <disable_collisions link1="link_2" link2="link_3" reason="Adjacent"/>
+  <disable_collisions link1="link_3" link2="link_4" reason="Adjacent"/>
+  <disable_collisions link1="link_3" link2="link_5" reason="Never"/>
+  <disable_collisions link1="link_3" link2="link_6" reason="Never"/>
+  <disable_collisions link1="link_4" link2="link_5" reason="Adjacent"/>
+  <disable_collisions link1="link_5" link2="link_6" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="link_2" reason="Never"/>
+  <disable_collisions link1="base_link" link2="link_3" reason="Never"/>
+  <disable_collisions link1="link_1" link2="link_4" reason="Never"/>
+  <disable_collisions link1="link_1" link2="link_5" reason="Never"/>
+  <disable_collisions link1="link_1" link2="link_6" reason="Never"/>
+  <disable_collisions link1="link_2" link2="link_4" reason="Never"/>
+  <disable_collisions link1="link_2" link2="link_5" reason="Never"/>
+  <disable_collisions link1="link_2" link2="link_6" reason="Never"/>
+  <disable_collisions link1="link_4" link2="link_6" reason="Never"/>
+  <!-- Gripper -->
+  <disable_collisions link1="gripper_base_link" link2="gripper_jaw1_link" reason="Adjacent"/>
+  <disable_collisions link1="gripper_base_link" link2="gripper_jaw2_link" reason="Adjacent"/>
+  <disable_collisions link1="gripper_jaw1_link" link2="gripper_jaw2_link" reason="Default"/>
+  <disable_collisions link1="link_6" link2="gripper_base_link" reason="Adjacent"/>
+  <disable_collisions link1="link_5" link2="gripper_base_link" reason="Adjacent"/>
+  <xacro:macro name="never_pairs" params="link others">
+    <xacro:if value="${others}">
+      <disable_collisions link1="${link}" link2="${others[0]}" reason="Never"/>
+      <xacro:never_pairs link="${link}" others="${others[1:]}"/>
+    </xacro:if>
+  </xacro:macro>
+  <xacro:never_pairs link="gripper_base_link" others="${['link_1', 'link_2', 'link_3', 'link_4']}"/>
+  <xacro:never_pairs link="gripper_jaw1_link" others="${['link_1', 'link_2', 'link_3', 'link_4', 'link_5', 'link_6']}"/>
+  <xacro:never_pairs link="gripper_jaw2_link" others="${['link_1', 'link_2', 'link_3', 'link_4', 'link_5', 'link_6']}"/>
+  <xacro:never_pairs link="cam_wrist_link" others="${['link_1', 'link_2', 'link_3']}"/>
+  <!-- Workcell -->
+  <disable_collisions link1="table" link2="base_link" reason="Adjacent"/>
+  <disable_collisions link1="table" link2="link_1" reason="Never"/>
+  <disable_collisions link1="table" link2="cam_overhead_link" reason="Never"/>
+  <disable_collisions link1="base_link" link2="cam_overhead_link" reason="Never"/>
+  <!-- Wrist camera, rigidly mounted on the flange -->
+  <disable_collisions link1="cam_wrist_link" link2="link_6" reason="Adjacent"/>
+  <disable_collisions link1="cam_wrist_link" link2="link_5" reason="Default"/>
+  <disable_collisions link1="cam_wrist_link" link2="gripper_base_link" reason="Adjacent"/>
+  <disable_collisions link1="cam_wrist_link" link2="gripper_jaw1_link" reason="Never"/>
+  <disable_collisions link1="cam_wrist_link" link2="gripper_jaw2_link" reason="Never"/>
+
+  <!-- Bins are static: never check them against each other, the table, the
+       base or the overhead camera. -->
+  <xacro:macro name="bin_pairs" params="bins">
+    <xacro:if value="${bins}">
+      <xacro:property name="b" value="bin_${bins[0]['name']}"/>
+      <disable_collisions link1="${b}" link2="table" reason="Adjacent"/>
+      <disable_collisions link1="${b}" link2="base_link" reason="Never"/>
+      <disable_collisions link1="${b}" link2="cam_overhead_link" reason="Never"/>
+      <xacro:bin_other_pairs b="${b}" others="${bins[1:]}"/>
+      <xacro:bin_pairs bins="${bins[1:]}"/>
+    </xacro:if>
+  </xacro:macro>
+  <xacro:macro name="bin_other_pairs" params="b others">
+    <xacro:if value="${others}">
+      <disable_collisions link1="${b}" link2="bin_${others[0]['name']}" reason="Never"/>
+      <xacro:bin_other_pairs b="${b}" others="${others[1:]}"/>
+    </xacro:if>
+  </xacro:macro>
+  <xacro:bin_pairs bins="${bins_cfg['bins']}"/>
+</robot>

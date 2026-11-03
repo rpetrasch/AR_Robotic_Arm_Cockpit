@@ -1,0 +1,342 @@
+@import "tailwindcss";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+@import "@fontsource-variable/inter";
+/* Tailwind CSS v4: configuration lives here. */
+@plugin "../hero.ts";
+/* HeroUI's component styles are generated from class names in its dist files. */
+@source "../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
+/* Dark mode follows a `.dark` class on <html> (lib/theme.tsx). */
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+  .dark *,
+  .dark ::after,
+  .dark ::before {
+    border-color: var(--color-zinc-700, currentColor);
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* The project's colours: a blue → purple gradient (docs/specs/spec_cockpit.md §5, §7.5). */
+:root {
+  --brand-blue: #0d6efd;
+  --brand-purple: #6f42c1;
+  --primary-gradient: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-purple) 100%);
+  --topbar-height: 56px;
+  --topbar-bg: #ffffff;
+  --page-bg: #f6f7fb;
+}
+.dark {
+  --topbar-bg: #18181b;
+  --page-bg: #0f0f12;
+}
+
+body {
+  @apply text-neutral-900 dark:text-neutral-100;
+  background: var(--page-bg);
+  min-height: 100vh;
+  margin: 0;
+}
+
+/* --- shell --------------------------------------------------------------------------- */
+.topbar {
+  height: var(--topbar-height);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  background: var(--topbar-bg);
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.brand img {
+  height: 28px;
+  width: 28px;
+}
+/* The wordmark is set in Inter (§7.5), bundled so it does not depend on installed fonts. */
+.brand .brand-ar3,
+.brand .brand-cockpit {
+  font-family: "Inter Variable", Inter, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+.brand .brand-ar3 {
+  font-weight: 800;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.brand .brand-cockpit {
+  font-weight: 400;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+}
+.main-menu {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  margin-left: 1.25rem;
+}
+.main-menu a {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.65rem;
+  font-size: 0.92rem;
+  color: inherit;
+  opacity: 0.75;
+  border-bottom: 3px solid transparent;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.main-menu a:hover {
+  opacity: 1;
+}
+.main-menu a.active {
+  opacity: 1;
+  font-weight: 600;
+  border-image: var(--primary-gradient) 1;
+  border-bottom-width: 3px;
+  border-bottom-style: solid;
+}
+/* Laptop width (1280 px) next to the status cluster: short labels below 1440 px, icons only
+   below 1100 px (mobile is not a target, but must not break). */
+.main-menu .label-short {
+  display: none;
+}
+@media (max-width: 1439px) {
+  .main-menu .label-long {
+    display: none;
+  }
+  .main-menu .label-short {
+    display: inline;
+  }
+}
+@media (max-width: 1100px) {
+  .main-menu .label {
+    display: none;
+  }
+}
+/* Top bar, banners, body: the body takes what is left, so a banner does not make the page overflow. */
+.app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.app-main {
+  flex: 1;
+  min-width: 0;
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.assistant-drawer {
+  width: 440px;
+  flex-shrink: 0;
+  border-left: 1px solid;
+  background: var(--topbar-bg);
+  position: sticky;
+  top: var(--topbar-height);
+  height: calc(100vh - var(--topbar-height));
+  overflow: auto;
+}
+.fake-banner,
+.danger-banner {
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 0.15rem 0.5rem;
+}
+.fake-banner {
+  background: #fff3cd;
+  color: #664d03;
+}
+.dark .fake-banner {
+  background: #3d3214;
+  color: #ffe69c;
+}
+
+/* --- login: split background (sim | real), half-transparent draggable panel ---------- */
+.login-screen {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  overflow: hidden;
+}
+.login-bg {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  z-index: 0;
+}
+.login-half {
+  position: relative;
+  overflow: hidden;
+}
+.login-half.sim {
+  background: radial-gradient(ellipse at 50% 40%, #eaf1ff 0%, #c9d6ee 70%, #b2c0dc 100%);
+}
+.login-half.real {
+  background: radial-gradient(ellipse at 50% 40%, #6b6b6b 0%, #3b3b3b 70%, #262626 100%);
+}
+.login-half canvas,
+.login-half video,
+.login-half img.still {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.login-half .placeholder-render {
+  position: absolute;
+  inset: 0;
+}
+.login-half.real .placeholder-render canvas {
+  filter: grayscale(1) contrast(1.15) brightness(0.9);
+}
+.login-half .half-label {
+  position: absolute;
+  top: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  z-index: 1;
+}
+.login-half.sim .half-label {
+  right: 1rem;
+}
+.login-half.real .half-label {
+  left: 1rem;
+}
+.login-half .pending {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  color: #e5e5e5;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0.2rem 0.7rem;
+  border-radius: 0.4rem;
+  z-index: 1;
+}
+.login-divider {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-1px);
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  z-index: 0;
+}
+.login-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 30rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.75rem 1.5rem 1.25rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.66);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 1rem;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.35);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.dark .login-panel {
+  background: rgba(24, 24, 27, 0.7);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.login-panel[data-dragging] {
+  cursor: grabbing;
+}
+.login-panel input {
+  user-select: text;
+  cursor: text;
+}
+.login-brand img.mark {
+  height: 64px;
+  width: 64px;
+}
+.login-brand .brand-ar3,
+.login-brand .brand-cockpit {
+  font-size: 2.4rem;
+}
+.login-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  opacity: 0.75;
+  text-decoration: none;
+  color: inherit;
+}
+.login-footer:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+/* Portrait or narrow screens: the halves stack, the divider turns horizontal. */
+@media (max-aspect-ratio: 1/1) {
+  .login-bg {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .login-divider {
+    top: 50%;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 2px;
+    transform: translateY(-1px);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  }
+}
+
+/* --- code / CLI blocks ("Run it yourself", principle 8) ------------------------------ */
+.cli {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+}

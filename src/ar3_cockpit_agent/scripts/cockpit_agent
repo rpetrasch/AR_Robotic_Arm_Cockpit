@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+"""Entry point of the AR3 Cockpit agent (see ar3_cockpit_agent/main.py)."""
+
+import sys
+
+from ar3_cockpit_agent.main import main
+
+sys.exit(main())

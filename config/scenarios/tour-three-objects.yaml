@@ -1,0 +1,33 @@
+# Five moves over a table with three spawned objects (spec_cockpit.md §18 C5 acceptance).
+# Poses are in the `table` frame; rpy [180, 0, -90] points the gripper straight down, as at
+# the named pose `observe`.
+id: tour-three-objects
+version: 1
+name: Tour over three objects
+description: Observe, approach a point above the table with OMPL, go down with Pilz LIN, open the gripper, home. Three objects are spawned in Gazebo and are collision objects for MoveIt.
+tags: [demo, sequence]
+modes: [sim_gazebo, sim_mock]
+world: workcell
+start:
+  named_pose: home
+scene:
+  objects:
+    - {id: cube_red, shape: box, size: [0.03, 0.03, 0.03], color: red, class: cube, pose: {x: 0.25, y: -0.15, yaw_deg: 15}, spawn: true}
+    - {id: cylinder_green, shape: cylinder, size: [0.03, 0.05], color: green, class: cylinder, pose: {x: 0.30, y: -0.03}, spawn: true}
+    - {id: ball_blue, shape: sphere, size: [0.04], color: blue, class: ball, pose: {x: 0.22, y: 0.08}, spawn: true}
+task:
+  type: sequence
+  steps:
+    - move_named: observe
+    - move_pose: {frame: table, x: 0.10, y: -0.10, z: 0.20, rpy_deg: [180, 0, -90]}
+    - move_pose: {frame: table, x: 0.10, y: -0.10, z: 0.12, rpy_deg: [180, 0, -90], planner: pilz_lin}
+    - gripper: open
+    - move_named: home
+planning:
+  pipeline: ompl
+  velocity_scaling: 0.2
+  acceleration_scaling: 0.2
+  planning_time_s: 5
+success:
+  all_steps_succeed: true
+  max_duration_s: 300

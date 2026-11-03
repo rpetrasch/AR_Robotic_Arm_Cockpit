@@ -1,0 +1,5 @@
+# The repo's ruff settings, plus the backend's own packages as first-party imports.
+extend = "../../../ruff.toml"
+
+[lint.isort]
+known-first-party = ["accounts", "ar3ctl", "config", "core", "environment", "monitoring", "setup", "tests"]

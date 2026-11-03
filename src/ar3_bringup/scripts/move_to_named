@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+import sys
+
+from ar3_bringup.named_poses import main
+
+sys.exit(main())

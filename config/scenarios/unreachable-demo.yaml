@@ -1,0 +1,15 @@
+# A pose target out of the arm's reach: "Check reachability" reports step 2 before a run.
+id: unreachable-demo
+version: 1
+name: Unreachable pose (demo)
+description: The second step asks for a TCP pose about 1 m from the base; IK finds no solution.
+tags: [demo]
+modes: [sim_gazebo, sim_mock]
+start:
+  named_pose: home
+task:
+  type: sequence
+  steps:
+    - move_named: observe
+    - move_pose: {x: 0.60, y: 0.30, z: 0.10, rpy_deg: [180, 0, -90]}
+    - move_named: home

@@ -1,0 +1,28 @@
+# The spec's sorting example (§12.1). `sort` runs through RunTask, which arrives with SPEC
+# Phase 3: until then the cockpit shows this scenario as not runnable.
+id: sort-three-colors
+version: 1
+name: Sort three colours
+description: Three cubes into the bins of their colour (needs SPEC Phase 3).
+tags: [sorting, phase3]
+modes: [sim_gazebo]
+world: workcell
+start:
+  named_pose: home
+scene:
+  objects:
+    - {id: cube_red_1, shape: box, size: [0.03, 0.03, 0.03], color: red, class: cube, pose: {x: 0.30, y: -0.05, yaw_deg: 15}, spawn: true}
+    - {id: cube_green_1, shape: box, size: [0.03, 0.03, 0.03], color: green, class: cube, pose: {x: 0.25, y: -0.15}, spawn: true}
+    - {id: cube_blue_1, shape: box, size: [0.03, 0.03, 0.03], color: blue, class: cube, pose: {x: 0.20, y: 0.05, yaw_deg: -20}, spawn: true}
+  bins:
+    - {name: bin_red, ref: config/bins.yaml}
+    - {name: bin_green, ref: config/bins.yaml}
+    - {name: bin_blue, ref: config/bins.yaml}
+  randomize: {seed: 42, xy_jitter_m: 0.02, yaw_jitter_deg: 20}
+perception: ground_truth
+task:
+  type: sort
+success:
+  all_steps_succeed: true
+  objects_in_bins: {cube_red_1: bin_red, cube_green_1: bin_green, cube_blue_1: bin_blue}
+  max_duration_s: 300

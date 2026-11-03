@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 128" role="img" aria-label="AR3 Cockpit"><defs><linearGradient id="g" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0d6efd"/><stop offset="1" stop-color="#6f42c1"/></linearGradient></defs>
+<linearGradient id="t" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0d6efd"/><stop offset="1" stop-color="#6f42c1"/></linearGradient>
+
+  <path d="M30.06 97.94 A48 48 0 1 1 97.94 97.94" fill="none" stroke="#94a3b8" stroke-opacity=".45" stroke-width="6" stroke-linecap="round"/>
+  <path d="M30.06 97.94 A48 48 0 0 1 64 16 A48 48 0 0 1 103.1 36.4" fill="none" stroke="url(#g)" stroke-width="6" stroke-linecap="round"/>
+  <g stroke="#94a3b8" stroke-opacity=".7" stroke-width="3" stroke-linecap="round">
+    <line x1="64" y1="26" x2="64" y2="31"/><line x1="37.1" y1="37.1" x2="40.7" y2="40.7"/>
+    <line x1="26" y1="64" x2="31" y2="64"/><line x1="102" y1="64" x2="97" y2="64"/>
+  </g>
+  <path d="M64 94 L50 66 L76 54 L88 47" fill="none" stroke="url(#g)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M90.2 38.1 L84.5 42.1 L91.5 51.9 L97.2 47.9" fill="none" stroke="url(#g)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="48" y="94" width="32" height="10" rx="4" fill="url(#g)"/>
+  <g fill="#ffffff" stroke="url(#g)" stroke-width="3.5">
+    <circle cx="64" cy="94" r="5.5"/><circle cx="50" cy="66" r="5.5"/><circle cx="76" cy="54" r="5"/>
+  </g>
+
+  <text x="134" y="82" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="54" font-weight="800" letter-spacing="-1" fill="url(#t)">AR3</text>
+  <text x="258" y="82" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="54" font-weight="400" letter-spacing="-0.5" fill="#0f172a">Cockpit</text>
+</svg>

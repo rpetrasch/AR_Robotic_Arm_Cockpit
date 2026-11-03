@@ -1,0 +1,66 @@
+# Alert rules (docs/specs/spec_cockpit.md §10.5), evaluated by run_monitor every 2 s.
+#
+#   id:        unique; with the subject (component, topic, joint, …) the dedup key
+#   title:     shown in the header toast and the Alerts tab
+#   when:      a condition over the facts below; and / or / not, == != < <= > >=, in
+#   severity:  info | warn | error | critical | from_match (the error pattern's severity)
+#   topic:     topic rules: the facts age_s and rate_hz are of this topic
+#
+# Facts (monitoring/alerts.py builds them every evaluation):
+#   mode                      header mode chip, "STOPPED" without a stack (the mode of a stack
+#                             that died stays until it is removed with make down)
+#   component.id / .status / .detail   one subject per row of the §9.2 health table; status is
+#                             ready | waiting | warn | error | off | unknown, and "down" for a
+#                             container that exited abnormally (killed, crashed)
+#   age_s, rate_hz            topic rules, from the agent (config/cockpit/telemetry.yaml)
+#   safety.estop              REAL: the e-stop is pressed (ar3_safety)
+#   joint.name / .margin_deg  distance to the nearer limit of config/robot.yaml, per joint
+#   camera.drift_mm / .drift_deg / .uvc_mismatch   Phase 2 (calibration); absent until then
+#   gpu.temp_c / .util_percent                     per GPU (Linux, nvidia-smi)
+#   disk.free_gb              free space of the repo's file system
+#   log.match.severity / .id  per new error-pattern match in a container log or /rosout
+#   ingest.lag_s              how far the telemetry ingest is behind (§12a.3)
+#
+# A missing fact compares as false, so a rule never fires on data it does not have.
+
+- id: container_down
+  title: Container down
+  when: component.status == "down" and mode != "STOPPED"
+  severity: error
+- id: topic_stale
+  title: Topic stale
+  topic: /joint_states
+  when: age_s > 1.0
+  severity: error
+- id: estop_active
+  title: E-stop pressed
+  when: safety.estop
+  severity: critical
+- id: joint_near_limit
+  title: Joint near its limit
+  when: joint.margin_deg < 5
+  severity: warn
+- id: camera_calibration_drift
+  title: Camera calibration drift
+  when: camera.drift_mm > 3 or camera.drift_deg > 0.5
+  severity: warn
+- id: camera_settings_mismatch
+  title: Camera settings differ from config
+  when: camera.uvc_mismatch
+  severity: warn
+- id: gpu_hot
+  title: GPU hot
+  when: gpu.temp_c > 85
+  severity: warn
+- id: disk_low
+  title: Disk space low
+  when: disk.free_gb < 15
+  severity: warn
+- id: log_error_pattern
+  title: Error in a log
+  when: log.match.severity in ["error", "critical"]
+  severity: from_match
+- id: ingest_lag
+  title: Telemetry ingest lags (storing 10 Hz)
+  when: ingest.lag_s > 10
+  severity: warn

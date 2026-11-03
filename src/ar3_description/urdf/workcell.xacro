@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Workcell: table, sorting bins and camera mounts, all driven by the site
+  config (config/robot.yaml, bins.yaml, cameras.yaml).
+-->
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <!-- Table: `table` frame is the centre of the top surface, z up. -->
+  <xacro:macro name="ar3_table" params="parent table">
+    <xacro:property name="h" value="${table['xyz'][2]}"/>
+    <joint name="table_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="table"/>
+      <origin xyz="${' '.join(str(v) for v in table['xyz'])}"
+              rpy="${' '.join(str(v) for v in table['rpy'])}"/>
+    </joint>
+    <link name="table">
+      <visual>
+        <origin xyz="0 0 ${-h/2}"/>
+        <geometry><box size="${table['size'][0]} ${table['size'][1]} ${h}"/></geometry>
+        <material name="table_wood"><color rgba="0.72 0.6 0.45 1"/></material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${-h/2}"/>
+        <geometry><box size="${table['size'][0]} ${table['size'][1]} ${h}"/></geometry>
+      </collision>
+      <inertial>
+        <origin xyz="0 0 ${-h/2}"/>
+        <mass value="20.0"/>
+        <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+      </inertial>
+    </link>
+  </xacro:macro>
+
+  <!-- One open-top bin: floor + 4 walls. Frame at the centre of the floor's underside. -->
+  <xacro:macro name="ar3_bin" params="bin parent">
+    <xacro:property name="sx" value="${bin['size'][0]}"/>
+    <xacro:property name="sy" value="${bin['size'][1]}"/>
+    <xacro:property name="sz" value="${bin['size'][2]}"/>
+    <xacro:property name="w" value="${bin['wall']}"/>
+    <xacro:property name="rgba" value="${' '.join(str(v) for v in bin['color'])}"/>
+    <!-- (x, y, z, size_x, size_y, size_z) of each panel in the bin frame -->
+    <xacro:property name="panels" value="${[
+      (0, 0, w/2, sx, sy, w),
+      ( (sx-w)/2, 0, sz/2, w, sy, sz),
+      (-(sx-w)/2, 0, sz/2, w, sy, sz),
+      (0,  (sy-w)/2, sz/2, sx - 2*w, w, sz),
+      (0, -(sy-w)/2, sz/2, sx - 2*w, w, sz)]}"/>
+    <joint name="bin_${bin['name']}_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="bin_${bin['name']}"/>
+      <origin xyz="${' '.join(str(v) for v in bin['xyz'])}" rpy="0 0 ${bin['yaw']}"/>
+    </joint>
+    <link name="bin_${bin['name']}">
+      <xacro:macro name="ar3_bin_panels" params="items">
+        <xacro:if value="${items}">
+          <xacro:property name="p" value="${items[0]}"/>
+          <visual>
+            <origin xyz="${p[0]} ${p[1]} ${p[2]}"/>
+            <geometry><box size="${p[3]} ${p[4]} ${p[5]}"/></geometry>
+            <material name="bin_${bin['name']}_color"><color rgba="${rgba}"/></material>
+          </visual>
+          <collision>
+            <origin xyz="${p[0]} ${p[1]} ${p[2]}"/>
+            <geometry><box size="${p[3]} ${p[4]} ${p[5]}"/></geometry>
+          </collision>
+          <xacro:ar3_bin_panels items="${items[1:]}"/>
+        </xacro:if>
+      </xacro:macro>
+      <xacro:ar3_bin_panels items="${panels}"/>
+      <inertial>
+        <origin xyz="0 0 ${sz/2}"/>
+        <mass value="0.2"/>
+        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+      </inertial>
+    </link>
+  </xacro:macro>
+
+  <!-- Recurse over the list of bins. -->
+  <xacro:macro name="ar3_bins" params="bins parent">
+    <xacro:if value="${bins}">
+      <xacro:ar3_bin bin="${bins[0]}" parent="${parent}"/>
+      <xacro:ar3_bins bins="${bins[1:]}" parent="${parent}"/>
+    </xacro:if>
+  </xacro:macro>
+
+  <!--
+    Camera mount: `<name>_link` (x forward) and `<name>_optical`
+    (z forward, x right, y down), plus a small visual/collision box.
+  -->
+  <xacro:macro name="ar3_camera" params="name cam">
+    <joint name="${name}_joint" type="fixed">
+      <parent link="${cam['parent']}"/>
+      <child link="${name}_link"/>
+      <origin xyz="${' '.join(str(v) for v in cam['xyz'])}"
+              rpy="${' '.join(str(v) for v in cam['rpy'])}"/>
+    </joint>
+    <link name="${name}_link">
+      <visual>
+        <origin xyz="-0.01 0 0"/>
+        <geometry><box size="0.02 0.06 0.025"/></geometry>
+        <material name="camera_black"><color rgba="0.1 0.1 0.1 1"/></material>
+      </visual>
+      <collision>
+        <origin xyz="-0.01 0 0"/>
+        <geometry><box size="0.02 0.06 0.025"/></geometry>
+      </collision>
+      <inertial>
+        <mass value="0.05"/>
+        <inertia ixx="1e-5" ixy="0" ixz="0" iyy="1e-5" iyz="0" izz="1e-5"/>
+      </inertial>
+    </link>
+    <joint name="${name}_optical_joint" type="fixed">
+      <parent link="${name}_link"/>
+      <child link="${name}_optical"/>
+      <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+    </joint>
+    <link name="${name}_optical"/>
+  </xacro:macro>
+
+</robot>

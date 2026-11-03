@@ -1,0 +1,22 @@
+# Sorting bins. Each bin becomes a fixed frame `bin_<name>` under `table`
+# (origin at the centre of the bin floor, on the table surface) and an open box
+# in the URDF, so MoveIt and Gazebo both see it.
+bins:
+  - name: red
+    xyz: [-0.20, 0.25, 0.0]   # table frame [m]
+    yaw: 0.0                 # [rad]
+    size: [0.12, 0.12, 0.06] # outer x, y, height [m]
+    wall: 0.004              # wall thickness [m]
+    color: [0.8, 0.1, 0.1, 1.0]
+  - name: green
+    xyz: [-0.04, 0.28, 0.0]
+    yaw: 0.0
+    size: [0.12, 0.12, 0.06]
+    wall: 0.004
+    color: [0.1, 0.7, 0.1, 1.0]
+  - name: blue
+    xyz: [0.12, 0.24, 0.0]
+    yaw: 0.0
+    size: [0.12, 0.12, 0.06]
+    wall: 0.004
+    color: [0.1, 0.2, 0.8, 1.0]

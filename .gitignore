@@ -1,0 +1,33 @@
+build/
+.cockpit/
+install/
+log/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+docker/.env
+/.env
+# AR3 Cockpit (tools/cockpit)
+.venv/
+node_modules/
+tools/cockpit/frontend/.next/
+tools/cockpit/frontend/out/
+tools/cockpit/frontend/test-results/
+tools/cockpit/frontend/playwright-report/
+tools/cockpit/frontend/public/icons/
+tools/cockpit/frontend/public/manifest.webmanifest
+tools/cockpit/frontend/public/login/media.json
+tools/cockpit/frontend/.e2e-data/
+tools/cockpit/frontend/tsconfig.tsbuildinfo
+
+# Recordings and exports of the cockpit (docs/specs/spec_cockpit.md §10.3, §12a)
+/data/
+
+# Docs
+docs/changelog
+
+# IDE settings (per developer, not shared)
+.idea/
+.vscode/

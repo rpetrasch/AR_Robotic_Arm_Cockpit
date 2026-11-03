@@ -1,0 +1,109 @@
+# CI: lint, build and test (unit + mock integration) in ROS 2 Jazzy, and build
+# the dev and vnc images for amd64 + arm64.
+# Also picked up by Forgejo Actions (Codeberg) when no .forgejo/workflows exists.
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install pre-commit==3.8.0
+      - run: pre-commit run --all-files --show-diff-on-failure
+
+  build-test:
+    runs-on: ubuntu-24.04
+    container: ros:jazzy-ros-base
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          apt-get update
+          rosdep update
+          rosdep install --from-paths src --ignore-src -y -r
+          apt-get install -y ros-jazzy-launch-testing-ament-cmake python3-colcon-common-extensions
+      - name: Build
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon build --symlink-install --cmake-args -DBUILD_TESTING=ON
+      - name: Test (unit + mock)
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash && source install/setup.bash
+          colcon test --packages-select ar3_description ar3_moveit_config ar3_bringup ar3_cockpit_agent \
+            --event-handlers console_cohesion+
+          colcon test-result --verbose
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-logs
+          path: |
+            log/
+            build/*/test_results/
+
+  # AR3 Cockpit (docs/manual/cockpit.md): backend tests against the pinned TimescaleDB image, the
+  # OpenAPI types up to date, frontend build and the e2e tests in fake mode.
+  cockpit:
+    runs-on: ubuntu-24.04
+    services:
+      db:
+        image: timescale/timescaledb-ha:pg17.11-ts2.31.0
+        env: {POSTGRES_DB: ar3cockpit, POSTGRES_USER: ar3cockpit, POSTGRES_PASSWORD: ci-only-password}
+        ports: ["5445:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ar3cockpit" --health-interval 2s --health-retries 30
+      redis:
+        image: redis:7.4.11-alpine
+        ports: ["6380:6379"]
+    env:
+      COCKPIT_DB_PASSWORD: ci-only-password
+      DJANGO_SECRET_KEY: ci-only-secret-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with: {node-version: "22", cache: npm, cache-dependency-path: tools/cockpit/frontend/package-lock.json}
+      - name: Backend tests
+        working-directory: tools/cockpit/backend
+        run: uv sync --locked && uv run pytest -q
+      - name: Frontend install
+        working-directory: tools/cockpit/frontend
+        run: npm ci
+      - name: OpenAPI types up to date
+        working-directory: tools/cockpit/frontend
+        run: npm run gen:api && git diff --exit-code lib/api/
+      - name: Build and e2e (fake mode)
+        working-directory: tools/cockpit/frontend
+        run: |
+          npm run build
+          npx playwright install --with-deps chromium
+          npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cockpit-e2e
+          path: tools/cockpit/frontend/playwright-report/
+
+  # Phase 0b: the dev and vnc images must build for both arches (no push).
+  images:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        target: [dev, vnc]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: ${{ matrix.target }}
+          platforms: linux/amd64,linux/arm64
+          push: false

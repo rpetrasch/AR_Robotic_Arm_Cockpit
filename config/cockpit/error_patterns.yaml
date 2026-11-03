@@ -1,0 +1,113 @@
+# Known errors in job logs (docs/specs/spec_cockpit.md §8.3). The exit code decides success; a
+# matching line is highlighted and summarised above the log, with a hint and, where one
+# exists, a step that fixes it (fix_step: an id from the step registry).
+#
+#   id:        unique
+#   regex:     Python regular expression, matched per line (case-insensitive)
+#   severity:  info | warn | error | critical
+#   docs:      a file in the repo
+
+- id: docker_socket_denied
+  regex: 'permission denied.*docker\.sock'
+  severity: error
+  title: Your user cannot reach Docker
+  hint: Add yourself to the docker group, then log out and back in.
+  fix_step: groups.add
+  docs: docs/manual/install.md
+
+- id: docker_down
+  regex: 'Cannot connect to the Docker daemon'
+  severity: error
+  title: Docker is not running
+  hint: Start Docker Desktop (Mac) or the Docker service (sudo systemctl start docker).
+  docs: docs/manual/install.md
+
+- id: no_space
+  regex: 'no space left on device'
+  severity: critical
+  title: The disk (or Docker's disk image) is full
+  hint: Free space; `docker system prune` removes unused images and build cache. On a Mac, Docker Desktop's disk size is under Settings → Resources.
+  docs: docs/manual/troubleshooting.md
+
+- id: port_in_use
+  regex: '(address already in use|port is already allocated|bind: address already in use)'
+  severity: error
+  title: A port is already in use
+  hint: Another stack or program holds the port. Stop the other ROS stack first (one stack per host), or find the program with `lsof -nP -iTCP:<port> -sTCP:LISTEN`.
+  docs: docs/manual/troubleshooting.md
+
+- id: stack_running
+  regex: 'A ROS stack is already running'
+  severity: error
+  title: Another ROS stack is running
+  hint: Only one stack may run per host. Stop it (make down, or Stop on the Environment page) and try again, or use "Stop and switch".
+  docs: docs/manual/cockpit.md
+  fix_step: env.stop
+
+- id: cmake_package_missing
+  regex: 'Could not find a package configuration file provided by "([^"]+)"'
+  severity: error
+  title: A ROS package is missing in the image
+  hint: Rebuild the dev image (it installs the dependencies), then build the workspace again.
+  fix_step: images.build
+  docs: docs/manual/install.md
+
+- id: colcon_failed
+  regex: '^Failed\s+<<<\s+(\S+)'
+  severity: error
+  title: A package failed to build
+  hint: The compiler error is a few lines above this one in the log.
+  docs: docs/manual/troubleshooting.md
+
+- id: nvidia_cli
+  regex: 'nvidia-container-cli: initialization error'
+  severity: error
+  title: Docker cannot use the NVIDIA GPU
+  hint: The driver or the NVIDIA Container Toolkit is missing or does not match.
+  fix_step: nvidia.toolkit
+  docs: docs/manual/install.md
+
+- id: network
+  regex: '(Temporary failure in name resolution|Could not resolve host|TLS handshake timeout)'
+  severity: error
+  title: No network connection
+  hint: The build downloads packages; check the internet connection or proxy and try again.
+  docs: docs/manual/troubleshooting.md
+
+- id: test_failures
+  regex: 'Summary: \d+ tests, \d+ errors?, [1-9]\d* failures?'
+  severity: error
+  title: Tests failed
+  hint: '`colcon test-result --verbose` lists the failing tests; their output is above.'
+  docs: docs/dev/testing.md
+
+- id: ollama_down
+  regex: '(could not connect to ollama|ollama server not responding)'
+  severity: warn
+  title: Ollama is not running
+  hint: Start the Ollama app, or run `ollama serve`.
+  docs: docs/manual/cockpit.md
+
+# Runtime errors: these also apply to container logs and /rosout (Monitoring → Logs, §10.2);
+# an error or critical match raises the alert log_error_pattern.
+
+- id: ros_process_died
+  regex: 'process has died \[pid \d+, exit code (-?\d+)'
+  severity: error
+  title: A ROS process died
+  hint: The lines just before it in the same log say why. Restart the stack (Environment → Restart); if it repeats, see the troubleshooting page.
+  docs: docs/manual/troubleshooting.md
+
+- id: controller_failed
+  regex: '(Failed to (load|configure|activate|switch) controller|Could not (load|configure) controller)'
+  severity: error
+  title: A ros2_control controller did not start
+  hint: Check src/ar3_bringup/config/ros2_controllers.yaml and the controller_manager lines before this one; then restart the stack.
+  docs: docs/manual/troubleshooting.md
+
+- id: planning_failed
+  regex: '(Unable to solve the planning problem|PLANNING_FAILED)'
+  severity: warn
+  title: MoveIt found no plan
+  hint: The goal may be unreachable or in collision. Try another pose, or a longer planning time.
+  docs: docs/manual/usage-sim.md

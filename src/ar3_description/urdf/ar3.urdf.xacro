@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<!--
+  AR3 workcell description.
+
+    xacro ar3.urdf.xacro config_dir:=<dir with robot.yaml, bins.yaml, cameras.yaml>
+                         hardware:=none|mock|gz [controllers_file:=<yaml> (gz only)]
+
+  TF: world -> table -> base_link -> ... -> tool0 -> gripper_tcp
+      world -> cam_overhead_link -> cam_overhead_optical
+      tool0 -> cam_wrist_link -> cam_wrist_optical
+      table -> bin_<name>
+-->
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="ar3">
+  <xacro:arg name="config_dir" default=""/>
+  <xacro:arg name="hardware" default="none"/>
+  <xacro:arg name="controllers_file" default=""/>
+  <xacro:arg name="include_bins" default="true"/>
+  <xacro:arg name="include_cameras" default="true"/>
+
+  <xacro:property name="config_dir" value="$(arg config_dir)"/>
+  <xacro:if value="${config_dir == ''}">
+    ${xacro.fatal("ar3.urdf.xacro: config_dir:=PATH_TO_CONFIG is required")}
+  </xacro:if>
+  <xacro:property name="hardware" value="$(arg hardware)"/>
+  <xacro:property name="robot_cfg" value="${xacro.load_yaml(config_dir + '/robot.yaml')}"/>
+  <xacro:property name="bins_cfg" value="${xacro.load_yaml(config_dir + '/bins.yaml')}"/>
+  <xacro:property name="cameras_cfg" value="${xacro.load_yaml(config_dir + '/cameras.yaml')}"/>
+
+  <xacro:include filename="$(find ar3_description)/urdf/ar3_macro.xacro"/>
+  <xacro:include filename="$(find ar3_description)/urdf/workcell.xacro"/>
+  <xacro:include filename="$(find annin_ar4_description)/urdf/ar_gripper_macro.xacro"/>
+
+  <link name="world"/>
+
+  <xacro:ar3_table parent="world" table="${robot_cfg['table']}"/>
+
+  <xacro:ar3_arm prefix="" parent="table"
+                 kinematics_file="$(find ar3_description)/config/ar3_kinematics.yaml"
+                 limits="${robot_cfg['joint_limits']}">
+    <origin xyz="${' '.join(str(v) for v in robot_cfg['mount']['xyz'])}"
+            rpy="${' '.join(str(v) for v in robot_cfg['mount']['rpy'])}"/>
+  </xacro:ar3_arm>
+
+  <!-- Upstream AR4 servo gripper, mounted on the flange. -->
+  <xacro:ar_gripper tf_prefix="" parent="tool0"/>
+
+  <!-- Tool centre point: between the jaw pads, 55 mm out from the flange. -->
+  <link name="gripper_tcp"/>
+  <joint name="gripper_tcp_joint" type="fixed">
+    <parent link="tool0"/>
+    <child link="gripper_tcp"/>
+    <origin xyz="0 0 0.055" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:if value="$(arg include_bins)">
+    <xacro:ar3_bins bins="${bins_cfg['bins']}" parent="table"/>
+  </xacro:if>
+
+  <xacro:if value="$(arg include_cameras)">
+    <xacro:ar3_camera name="cam_overhead" cam="${cameras_cfg['cam_overhead']}"/>
+    <xacro:ar3_camera name="cam_wrist" cam="${cameras_cfg['cam_wrist']}"/>
+  </xacro:if>
+
+  <xacro:unless value="${hardware == 'none'}">
+    <xacro:include filename="$(find ar3_description)/urdf/ar3.ros2_control.xacro"/>
+    <xacro:ar3_ros2_control hardware="${hardware}" prefix=""
+        initial_positions="${dict(joint_1=0.0, joint_2=0.0, joint_3=0.0, joint_4=0.0, joint_5=0.0, joint_6=0.0)}"/>
+  </xacro:unless>
+
+  <xacro:if value="${hardware == 'gz'}">
+    <xacro:include filename="$(find ar3_description)/urdf/ar3.gazebo.xacro"/>
+    <xacro:ar3_gazebo cameras="${cameras_cfg}" controllers_file="$(arg controllers_file)"/>
+  </xacro:if>
+</robot>

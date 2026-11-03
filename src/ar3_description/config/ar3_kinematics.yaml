@@ -1,0 +1,21 @@
+# AR3 kinematic constants (metres). These describe the robot model, not the site.
+#
+# Values are the stock Annin AR3 DH parameters, which are identical to the AR4
+# MK1 values used by upstream annin_ar4_description:
+#   d1 = 169.77 mm, a1 = 64.2 mm, a2 = 305 mm, d4 = 222.63 mm, d6 = 36.25 mm
+#
+# [OPEN] SPEC §12 #3: replace with measured values if the owner's arm differs.
+# Link meshes are the upstream AR4 MK1 meshes (visual/collision only; they are
+# close to, but not exactly, the AR3 printed parts).
+mesh_dir: ar4
+
+d1: 0.16977        # base -> joint 2 height (along joint 1 axis)
+a1: 0.0642         # joint 1 axis -> joint 2 axis offset
+a2: 0.305          # joint 2 -> joint 3 (upper arm)
+a2_z: 0.007        # small lateral offset between joint 2 and joint 3 frames
+d4: 0.22263        # joint 3/4 -> joint 5 (forearm)
+d6: 0.03625        # joint 5 -> flange (tool0)
+
+# Max joint speed written into the URDF limit tags (rad/s). MoveIt limits in
+# ar3_moveit_config/config/joint_limits.yaml are what planning actually uses.
+max_joint_velocity: 1.0472

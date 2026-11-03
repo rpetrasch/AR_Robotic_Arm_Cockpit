@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AR3 arm. Derived from upstream annin_ar4_description/urdf/ar_macro.xacro
+  (vendored under src/external/ar4_ros_driver); differences:
+    - every link length comes from `kinematics_file` instead of being literal
+      (SPEC §12 #3: the owner may supply measured values),
+    - joint limits come from the site config (`limits`, degrees),
+    - the flange frame is called `tool0` (upstream: `ee_link`).
+  Meshes and inertial values are the upstream AR4 MK1 ones.
+
+  Upstream notice (MIT, see src/external/ar4_ros_driver/LICENSE):
+    Copyright (c) 2021 Dexter Ong
+  Changes: Copyright (c) 2026 Richard Petrasch and Roland Petrasch (MIT, LICENSE.md).
+-->
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  <xacro:macro name="ar3_arm" params="prefix parent kinematics_file limits *origin">
+    <xacro:property name="k" value="${xacro.load_yaml(kinematics_file)}"/>
+    <xacro:property name="mesh_root" value="file://$(find annin_ar4_description)/meshes/${k['mesh_dir']}"/>
+    <xacro:property name="vmax" value="${k['max_joint_velocity']}"/>
+
+    <xacro:macro name="ar3_link" params="name *inertial">
+      <link name="${prefix}${name}">
+        <xacro:insert_block name="inertial"/>
+        <visual>
+          <geometry><mesh filename="${mesh_root}/${name}.STL"/></geometry>
+          <material name="ar3_yellow"><color rgba="1 0.85 0 1"/></material>
+        </visual>
+        <collision>
+          <geometry><mesh filename="${mesh_root}/${name}.STL"/></geometry>
+        </collision>
+      </link>
+    </xacro:macro>
+
+    <xacro:macro name="ar3_joint" params="n parent_link axis *origin">
+      <joint name="${prefix}joint_${n}" type="revolute">
+        <xacro:insert_block name="origin"/>
+        <parent link="${prefix}${parent_link}"/>
+        <child link="${prefix}link_${n}"/>
+        <axis xyz="${axis}"/>
+        <limit lower="${radians(limits['joint_' + str(n)][0])}"
+               upper="${radians(limits['joint_' + str(n)][1])}"
+               effort="-1" velocity="${vmax}"/>
+      </joint>
+    </xacro:macro>
+
+    <joint name="${prefix}base_joint" type="fixed">
+      <xacro:insert_block name="origin"/>
+      <parent link="${parent}"/>
+      <child link="${prefix}base_link"/>
+    </joint>
+
+    <xacro:ar3_link name="base_link">
+      <inertial>
+        <origin xyz="-4.6941E-06 0.054174 0.038824"/>
+        <mass value="0.7102"/>
+        <inertia ixx="0.0039943" ixy="3.697E-07" ixz="-5.7364E-08" iyy="0.0014946" iyz="-0.00036051" izz="0.0042554"/>
+      </inertial>
+    </xacro:ar3_link>
+    <xacro:ar3_link name="link_1">
+      <inertial>
+        <origin xyz="-0.022706 0.04294 -0.12205"/>
+        <mass value="0.88065"/>
+        <inertia ixx="0.0034" ixy="0.00042296" ixz="-0.00089231" iyy="0.0041778" iyz="0.0010848" izz="0.0027077"/>
+      </inertial>
+    </xacro:ar3_link>
+    <xacro:ar3_link name="link_2">
+      <inertial>
+        <origin xyz="0.064818 -0.11189 -0.038671"/>
+        <mass value="0.57738"/>
+        <inertia ixx="0.0047312" ixy="0.0022624" ixz="0.00032144" iyy="0.0020836" iyz="-0.00056569" izz="0.0056129"/>
+      </inertial>
+    </xacro:ar3_link>
+    <xacro:ar3_link name="link_3">
+      <inertial>
+        <origin xyz="-0.00029765 -0.023661 -0.0019125"/>
+        <mass value="0.1787"/>
+        <inertia ixx="0.0001685" ixy="-2.7713E-05" ixz="5.6885E-06" iyy="0.00012865" iyz="2.9256E-05" izz="0.00020744"/>
+      </inertial>
+    </xacro:ar3_link>
+    <xacro:ar3_link name="link_4">
+      <inertial>
+        <origin xyz="-0.0016798 -0.00057319 -0.074404"/>
+        <mass value="0.34936"/>
+        <inertia ixx="0.0030532" ixy="-1.8615E-05" ixz="-7.0047E-05" iyy="0.0031033" iyz="-2.3301E-05" izz="0.00022264"/>
+      </inertial>
+    </xacro:ar3_link>
+    <xacro:ar3_link name="link_5">
+      <inertial>
+        <origin xyz="0.0015066 -1.3102E-05 -0.012585"/>
+        <mass value="0.11562"/>
+        <inertia ixx="5.5035E-05" ixy="-1.019E-08" ixz="-2.6243E-06" iyy="8.2921E-05" iyz="1.4437E-08" izz="5.2518E-05"/>
+      </inertial>
+    </xacro:ar3_link>
+    <xacro:ar3_link name="link_6">
+      <inertial>
+        <origin xyz="2.9287E-10 -1.6472E-09 0.0091432"/>
+        <mass value="0.013863"/>
+        <inertia ixx="1.3596E-06" ixy="3.0585E-13" ixz="5.7102E-14" iyy="1.7157E-06" iyz="6.3369E-09" izz="2.4332E-06"/>
+      </inertial>
+    </xacro:ar3_link>
+
+    <xacro:ar3_joint n="1" parent_link="base_link" axis="0 0 1">
+      <origin rpy="${pi} 0 0" xyz="0 0 0"/>
+    </xacro:ar3_joint>
+    <xacro:ar3_joint n="2" parent_link="link_1" axis="0 0 -1">
+      <origin rpy="${pi/2} 0 ${-pi/2}" xyz="0 ${k['a1']} ${-k['d1']}"/>
+    </xacro:ar3_joint>
+    <xacro:ar3_joint n="3" parent_link="link_2" axis="0 0 -1">
+      <origin rpy="0 0 ${pi}" xyz="0 ${-k['a2']} ${k['a2_z']}"/>
+    </xacro:ar3_joint>
+    <xacro:ar3_joint n="4" parent_link="link_3" axis="0 0 -1">
+      <origin rpy="${pi/2} 0 ${-pi/2}" xyz="0 0 0"/>
+    </xacro:ar3_joint>
+    <xacro:ar3_joint n="5" parent_link="link_4" axis="1 0 0">
+      <origin rpy="${pi} 0 ${-pi/2}" xyz="0 0 ${-k['d4']}"/>
+    </xacro:ar3_joint>
+    <xacro:ar3_joint n="6" parent_link="link_5" axis="0 0 1">
+      <origin rpy="0 0 ${pi}" xyz="0 0 ${k['d6']}"/>
+    </xacro:ar3_joint>
+
+    <!-- Centre of the flange on link_6, z pointing out of the flange. -->
+    <link name="${prefix}tool0"/>
+    <joint name="${prefix}tool0_joint" type="fixed">
+      <parent link="${prefix}link_6"/>
+      <child link="${prefix}tool0"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+</robot>

@@ -1,0 +1,49 @@
+# What the cockpit agent streams (docs/specs/spec_cockpit.md §10.3, §12a). Read by ar3_cockpit_agent
+# from $AR3_CONFIG_DIR/cockpit/telemetry.yaml; the stored rate is TELEMETRY_RATE_HZ in .env.
+
+# Measured all the time: Monitoring → Telemetry "Topic rates" and the alert rule topic_stale.
+# Camera images are measured by their camera_info (an image subscription costs CPU).
+rate_topics:
+  - /joint_states
+  - /clock
+  - /joint_trajectory_controller/controller_state
+  - /cam_overhead/camera_info
+  - /cam_wrist/camera_info
+
+# Commanded vs. actual: reference of the trajectory controller.
+controller_state: /joint_trajectory_controller/controller_state
+# Planned trajectories (MoveIt), shown in the 3D view and stored in `trajectories`.
+planned_path: /display_planned_path
+# Subscribed when they appear (ar3_safety and ar3_perception, SPEC Phases 1 and 2).
+safety: /safety/status
+objects: /perception/objects
+
+# Camera thumbnails for config/cameras.yaml's cameras (<name>/image_raw), while somebody looks.
+thumbnails:
+  max_fps: 5     # at most this many new JPEGs per second and camera
+  width: 320     # pixels
+  idle_s: 10     # drop the image subscription after this long without a request
+
+# Topic lists for "Record a rosbag" (make bag PRESET=…, cockpit step rosbag.record). Topics
+# that do not exist (yet) are recorded once they appear.
+bag_presets:
+  default:
+    - /joint_states
+    - /tf
+    - /tf_static
+    - /joint_trajectory_controller/controller_state
+    - /display_planned_path
+    - /rosout
+    - /clock
+    - /safety/status
+    - /perception/objects
+  cameras:
+    - /joint_states
+    - /tf
+    - /tf_static
+    - /joint_trajectory_controller/controller_state
+    - /clock
+    - /cam_overhead/image_raw
+    - /cam_overhead/camera_info
+    - /cam_wrist/image_raw
+    - /cam_wrist/camera_info
