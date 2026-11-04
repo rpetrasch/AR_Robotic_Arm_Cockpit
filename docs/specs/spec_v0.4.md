@@ -228,7 +228,7 @@ Additive change; must not alter package code or the existing Linux workflow.
 **Accept**: Policy runs end-to-end on the real arm with safety layer active; success rate reported against the classical baseline on the same object set.
 
 ### Phase 6 — Research (not in scope; placeholder)
-Here are some of the topics: VLA fine-tuning (OpenVLA-OFT / π0-family, cloud GPU), language task parsing via local VLM on MacBook, learned world model + sampling-based planner. 
+Here are some of the topics: VLA fine-tuning (OpenVLA-OFT / π0-family, cloud GPU), language task parsing via local VLM on MacBook, learned world model + sampling-based planner.
 Another interesting extension is NVIDIA Isaac Sim and MuJoCo (see https://github.com/Ekumen-OS/ar4).
 
 Also on the "menu" with high priority is data quality (DQ) for robotics, e.g. data checks and cleansing for sensor data, creating AI-ready data from simulations and physical twin runs, evaluation of AI results. We ould use Grafana and other DQ tools for that.

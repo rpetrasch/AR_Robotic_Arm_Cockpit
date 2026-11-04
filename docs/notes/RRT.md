@@ -112,14 +112,14 @@ arm:
   planner_configs:
     - RRTConnectkConfigDefault
     - RRTstarkConfigDefault
-  
+
   default_planner_config: RRTConnectkConfigDefault
 
 planner_configs:
   RRTConnectkConfigDefault:
     type: geometric::RRTConnect
     range: 0.0  # Max step size (0.0 auto-calculates based on C-space extent)
-    
+
   RRTstarkConfigDefault:
     type: geometric::RRTstar
     range: 0.0

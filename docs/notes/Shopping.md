@@ -24,7 +24,7 @@ Annin has no official AR3→Teensy 4.1 retrofit guide. The AR3 used a Teensy 3.5
 
 ## 2. GPUs
 
-For the research topics, a more powerful workstation with > 16 GB GPU RAM is necessary, e.g. RTX 5090, AMD Ryzen AI Halo / Ryzen AI Max+ 395, NVIDIA DGX Spark. 
+For the research topics, a more powerful workstation with > 16 GB GPU RAM is necessary, e.g. RTX 5090, AMD Ryzen AI Halo / Ryzen AI Max+ 395, NVIDIA DGX Spark.
 
 
 ## 3. Hardware e-stop

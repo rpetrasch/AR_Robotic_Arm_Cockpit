@@ -57,7 +57,7 @@ Plans collision-free motions for the arm and the gripper and sends them to the c
 
 ## ros2_control / controllers
 
-The controller manager with joint_state_broadcaster, joint_trajectory_controller and gripper_controller. In mock it drives mock_components (no physics), in sim Gazebo, on the real arm the hardware interface (Spec Phase 1).
+The controller manager with joint_state_broadcaster, joint_trajectory_controller and gripper_controller. In mock it drives mock_components (no physics), in sim Gazebo, on the real arm the hardware interface (SPEC Phase 1).
 
 - **Runs in:** every_stack, real
 - **Ports:** —
@@ -74,7 +74,7 @@ The controller manager with joint_state_broadcaster, joint_trajectory_controller
 
 ## ar3_safety
 
-Watches the e-stop, the limits and the heartbeat on the real arm and owns the arm state (NOT HOMED, HOMED, ARMED, E-STOP). Arrives with Spec Phase 1; until then REAL cannot start.
+Watches the e-stop, the limits and the heartbeat on the real arm and owns the arm state (NOT HOMED, HOMED, ARMED, E-STOP). Arrives with SPEC Phase 1; until then REAL cannot start.
 
 - **Runs in:** real
 - **Ports:** —
@@ -83,7 +83,7 @@ Watches the e-stop, the limits and the heartbeat on the real arm and owns the ar
 
 | | Command |
 |---|---|
-| start | `# Spec Phase 1` |
+| start | `# SPEC Phase 1` |
 | stop | `make down` |
 | logs | `docker compose -f docker/compose.yaml logs -f <service> | grep safety` |
 | status | `docker compose -f docker/compose.yaml exec <service> bash -ic 'ros2 topic echo /safety/status --once'` |
@@ -91,7 +91,7 @@ Watches the e-stop, the limits and the heartbeat on the real arm and owns the ar
 
 ## Hardware interface
 
-The ros2_control plugin that talks to the Teensy 4.1 over USB serial (ar3_hardware, Spec Phase 1). Not built yet; the serial protocol and pin map are open items.
+The ros2_control plugin that talks to the Teensy 4.1 over USB serial (ar3_hardware, SPEC Phase 1). Not built yet; the serial protocol and pin map are open owner items.
 
 - **Runs in:** real
 - **Ports:** —
@@ -100,7 +100,7 @@ The ros2_control plugin that talks to the Teensy 4.1 over USB serial (ar3_hardwa
 
 | | Command |
 |---|---|
-| start | `# Spec Phase 1` |
+| start | `# SPEC Phase 1` |
 | stop | `make down` |
 | logs | `docker compose -f docker/compose.yaml logs -f <service>` |
 | status | `ls -l /dev/ttyACM*` |
