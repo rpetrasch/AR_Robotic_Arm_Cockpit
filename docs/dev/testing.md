@@ -20,18 +20,22 @@ Current totals: `make test` 59 tests (colcon's count), `make test-sim` 2 tests.
 
 ## CI
 
-`.github/workflows/ci.yml` has four jobs:
+`.github/workflows/ci.yml` has three jobs and runs on every push and pull request:
 
 1. `lint` runs pre-commit.
 2. `build-test` installs dependencies with `rosdep` in `ros:jazzy-ros-base`, builds, and runs `make test`'s test set.
-3. `images` builds the `dev` and `vnc` images for `linux/amd64` and `linux/arm64` with buildx (no push).
-   The arm64 build was run locally (`docker buildx build --platform linux/arm64`).
-4. `cockpit` runs the AR3 Cockpit tests (below) with TimescaleDB and Redis service containers.
+3. `cockpit` runs the AR3 Cockpit tests (below) with TimescaleDB and Redis service containers.
+
+`.github/workflows/images.yml` builds the `dev` and `vnc` images for `linux/amd64` and
+`linux/arm64` with buildx (no push). It takes the longest, so it runs only when `docker/` or the
+workflow itself changes.
+
+In both workflows, a newer push to a branch cancels the run in progress on that branch.
 
 The repository is hosted on Codeberg. Forgejo Actions reads `.github/workflows` when no
 `.forgejo/workflows` directory exists, but a runner has to be enabled for the repository.
 The `build-test` steps were run locally in a clean `ros:jazzy-ros-base` container.
-The workflow itself has not run on a hosted runner yet.
+The workflows also run on GitHub Actions.
 
 ## AR3 Cockpit
 

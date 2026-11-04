@@ -1,10 +1,15 @@
-# CI: lint, build and test (unit + mock integration) in ROS 2 Jazzy, and build
-# the dev and vnc images for amd64 + arm64.
+# CI: lint, build and test (unit + mock integration) in ROS 2 Jazzy, and the cockpit.
+# The images are built by images.yml, only when docker/ changes.
 # Also picked up by Forgejo Actions (Codeberg) when no .forgejo/workflows exists.
 name: ci
 on:
   push:
   pull_request:
+
+# A newer push to the same branch replaces the run in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
@@ -89,21 +94,3 @@ jobs:
         with:
           name: cockpit-e2e
           path: tools/cockpit/frontend/playwright-report/
-
-  # Phase 0b: the dev and vnc images must build for both arches (no push).
-  images:
-    runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        target: [dev, vnc]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: docker/Dockerfile
-          target: ${{ matrix.target }}
-          platforms: linux/amd64,linux/arm64
-          push: false

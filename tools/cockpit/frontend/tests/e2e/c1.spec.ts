@@ -152,6 +152,8 @@ test("theme: one click per choice, the active one checked, kept after a reload",
   await signIn(page);
   const html = page.locator("html");
   const pick = async (mode: string) => {
+    // A click while the previous menu is still closing does not reopen it.
+    await expect(page.getByTestId("theme-system")).toHaveCount(0);
     await page.getByTestId("user-menu").click();
     await page.getByTestId(`theme-${mode}`).click();
   };
