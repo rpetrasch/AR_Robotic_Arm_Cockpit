@@ -3,6 +3,101 @@ info:
   title: AR3 Cockpit API
   version: 0.1.0
 paths:
+  /api/ai/models:
+    get:
+      operationId: ai_models_retrieve
+      description: Installed Ollama models with a hardware hint, the Anthropic switch,
+        the task settings.
+      tags:
+      - ai
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/ai/tasks/{task}:
+    get:
+      operationId: ai_task_get
+      parameters:
+      - in: path
+        name: task
+        schema:
+          type: string
+        required: true
+      tags:
+      - ai
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    put:
+      operationId: ai_tasks_update
+      parameters:
+      - in: path
+        name: task
+        schema:
+          type: string
+        required: true
+      tags:
+      - ai
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: {}
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: {}
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/ai/tasks/{task}/test:
+    post:
+      operationId: ai_tasks_test_create
+      description: 'A short prompt with the task''s provider and model: latency and
+        the first tokens.'
+      parameters:
+      - in: path
+        name: task
+        schema:
+          type: string
+        required: true
+      tags:
+      - ai
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/alerts:
     get:
       operationId: alerts_list
@@ -197,6 +292,168 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/assistant/index:
+    get:
+      operationId: assistant_index_retrieve
+      tags:
+      - assistant
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/assistant/index/rebuild:
+    post:
+      operationId: assistant_index_rebuild_create
+      description: 'Starts the step ``assistant.index`` (a job with a log); ``{"full":
+        true}`` re-embeds all.'
+      tags:
+      - assistant
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: {}
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: {}
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/assistant/threads:
+    get:
+      operationId: assistant_threads_list
+      tags:
+      - assistant
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: assistant_threads_create
+      tags:
+      - assistant
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: {}
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: {}
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/assistant/threads/{thread_id}:
+    get:
+      operationId: assistant_thread_get
+      parameters:
+      - in: path
+        name: thread_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - assistant
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    patch:
+      operationId: assistant_threads_partial_update
+      parameters:
+      - in: path
+        name: thread_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - assistant
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: {}
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: {}
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    delete:
+      operationId: assistant_threads_destroy
+      parameters:
+      - in: path
+        name: thread_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - assistant
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/audit:
     get:
       operationId: audit_retrieve
