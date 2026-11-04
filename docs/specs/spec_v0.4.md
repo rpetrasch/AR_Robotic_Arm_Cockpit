@@ -231,7 +231,7 @@ Additive change; must not alter package code or the existing Linux workflow.
 Here are some of the topics: VLA fine-tuning (OpenVLA-OFT / π0-family, cloud GPU), language task parsing via local VLM on MacBook, learned world model + sampling-based planner. 
 Another interesting extension is NVIDIA Isaac Sim and MuJoCo (see https://github.com/Ekumen-OS/ar4).
 
-Also on the "menu" with high priority is data quality (DQ) for robotics, e.g. data checks and cleansing for sensor data, creating AI-ready data from simulations and physical twin runs, evaluation of AI results.
+Also on the "menu" with high priority is data quality (DQ) for robotics, e.g. data checks and cleansing for sensor data, creating AI-ready data from simulations and physical twin runs, evaluation of AI results. We ould use Grafana and other DQ tools for that.
 
 These topics require their own spec.
 

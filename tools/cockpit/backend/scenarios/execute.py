@@ -21,12 +21,13 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
-from asgiref.sync import sync_to_async
+from asgiref.sync import async_to_sync, sync_to_async
 from channels.layers import get_channel_layer
 from django.conf import settings
 from django.core.cache import cache
@@ -36,8 +37,10 @@ from core.agent import AgentError, get_agent
 
 from . import evaluate, resolve, store, validate
 
+log = logging.getLogger("cockpit.jobs")
 CURRENT_RUN_KEY = "cockpit:run:current"  # run_ingest tags the samples with it
 ROBOT_OF = {"sim_mock": "mock", "sim_gazebo": "gazebo", "real": "real"}
+ORPHAN_ERROR = "interrupted: the cockpit worker stopped during the run"
 
 
 class RunError(Exception):
@@ -326,6 +329,54 @@ def run_dict(r) -> dict:
         "options": r.options,
         "job_id": str(r.job_id) if r.job_id else None,
     }
+
+
+def close_orphan(run) -> None:
+    """Finish a run nobody follows any more: its job is over (the worker stopped mid-run), so
+    ``_one`` will never store a result. ``ended`` is the last event, not the time of noticing."""
+    folder = runs_dir() / str(run.id)
+    events = folder / "events.jsonl"
+    run.status = run.result = "aborted"
+    run.ended = (
+        datetime.fromtimestamp(events.stat().st_mtime, UTC) if events.exists() else timezone.now()
+    )
+    run.error = ORPHAN_ERROR
+    run.steps = [
+        {**s, "status": "aborted"} if s.get("status") == "running" else s for s in run.steps
+    ]
+    run.failed_step = next((s["index"] for s in run.steps if s["status"] == "aborted"), None)
+    run.save()
+    if cache.get(CURRENT_RUN_KEY) == str(run.id):
+        cache.delete(CURRENT_RUN_KEY)  # or run_ingest goes on tagging samples with this run
+    if folder.exists():
+        _write_json(folder / "run.json", run_dict(run))
+
+
+def is_orphan(run) -> bool:
+    """A running run whose job is over. Without a job (ar3ctl) its process is not known here."""
+    from setup.models import Job
+
+    if run.status != "running" or not run.job_id:
+        return False
+    job = Job.objects.filter(pk=run.job_id).first()
+    return job is None or job.status not in Job.ACTIVE
+
+
+def close_orphans() -> int:
+    """At the worker's start, after it has failed the jobs it found running. The agent outlives
+    the worker and would go on moving the arm with nobody following, so abort first."""
+    from telemetry.models import Run
+
+    orphans = [r for r in Run.objects.filter(status="running") if is_orphan(r)]
+    for run in orphans:
+        try:
+            async_to_sync(get_agent().run_abort)(str(run.id))
+            log.warning("run %s was still known to the agent: aborted it", run.id)
+        except AgentError as exc:
+            if exc.status != 404:  # 404: the agent restarted too, there is nothing to stop
+                log.error("run %s: could not abort it on the agent: %s", run.id, exc)
+        close_orphan(run)
+    return len(orphans)
 
 
 def new_id() -> str:

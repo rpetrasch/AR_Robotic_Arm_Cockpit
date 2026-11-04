@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AlignedData } from "uplot";
-import { Button, Card, CardBody, CardHeader, Checkbox, Chip, Input, Select, SelectItem, Spinner, Switch } from "@heroui/react";
+import { addToast, Button, Card, CardBody, CardHeader, Checkbox, Chip, Input, Select, SelectItem, Spinner, Switch } from "@heroui/react";
 import { abortRun, compareRuns, getScenario, listRuns, pauseRun, startRun, type RunRecord, type RunStep } from "@/lib/api/scenarios";
 import type { Sample, TelemetryMessage } from "@/lib/api/monitoring";
 import { ApiError } from "@/lib/api/http";
@@ -149,8 +149,9 @@ function LiveRun({ run }: { run: RunRecord }) {
       }
     }
   });
-  const pause = useMutation({ mutationFn: (on: boolean) => pauseRun(run.id, on), onSuccess: (r) => setPaused(r.paused) });
-  const abort = useMutation({ mutationFn: () => abortRun(run.id) });
+  const failed = (e: Error) => addToast({ title: e.message, color: "danger" });
+  const pause = useMutation({ mutationFn: (on: boolean) => pauseRun(run.id, on), onSuccess: (r) => setPaused(r.paused), onError: failed });
+  const abort = useMutation({ mutationFn: () => abortRun(run.id), onError: failed });
   const arm = names.map((n, i) => [n, i] as const).filter(([n]) => !n.includes("gripper"));
   const data = useMemo<AlignedData>(() => [samples.map((s) => s.t), ...arm.map(([, i]) => samples.map((s) => s.p[i] ?? null))] as AlignedData, [samples, names]); // eslint-disable-line react-hooks/exhaustive-deps
   const latest = samples.at(-1);

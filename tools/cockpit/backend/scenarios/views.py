@@ -302,6 +302,8 @@ def run_abort(request: Request, run_id) -> Response:
     job = Job.objects.filter(pk=r.job_id).first() if r.job_id else None
     if job is not None and job.status in Job.ACTIVE:
         service.request_cancel(job)
+    if execute.is_orphan(r):
+        execute.close_orphan(r)
     audit.record_request(request, "scenario.abort", f"run:{r.id}", {"scenario": r.scenario_id})
     return Response(execute.run_dict(r))
 

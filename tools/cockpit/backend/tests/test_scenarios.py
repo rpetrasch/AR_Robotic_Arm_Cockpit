@@ -17,7 +17,7 @@ from core import agent, fake
 from scenarios import evaluate, execute, pack, resolve, store, validate
 from setup import executor, service
 from setup.models import Job
-from telemetry.models import Recording, Run
+from telemetry.models import Recording, Run, Session
 
 pytestmark = pytest.mark.django_db
 EXAMPLE = (REPO / "config/scenarios/tour-three-objects.yaml").read_text()
@@ -266,6 +266,66 @@ def test_abort_through_job_cancel(sim_stack, monkeypatch):
     run = Run.objects.get()
     assert run.result == "aborted" and done.status in ("failed", "cancelled")
     assert any(s["status"] == "aborted" for s in run.steps)
+
+
+def orphan_run(job_status: str = Job.FAILED) -> Run:
+    """A run as left behind by a worker that stopped during step 2."""
+    from django.utils import timezone
+
+    job = service.create_job("scenario.run", {"scenario": "x"}, "alice", "macos")
+    Job.objects.filter(pk=job.pk).update(status=job_status)
+    session = Session.objects.create(host="h", os="macos", mode="sim_gazebo", mode_id="m",
+                                     source="sim", key=execute.new_id(),
+                                     started=timezone.now())  # fmt: skip
+    steps = [
+        {"index": 0, "label": "a", "status": "succeeded"},
+        {"index": 1, "label": "b", "status": "running"},
+        {"index": 2, "label": "c", "status": "pending"},
+    ]
+    return Run.objects.create(session=session, scenario_id="x", started=timezone.now(),
+                              status="running", mode="sim_gazebo", user="alice", job_id=job.pk,
+                              steps=steps)  # fmt: skip
+
+
+def test_abort_closes_a_run_whose_job_is_over(client_in, sim_stack):
+    run = orphan_run()
+    assert post(client_in, f"/api/runs/{run.id}/abort").json()["status"] == "aborted"
+    run.refresh_from_db()
+    assert run.status == run.result == "aborted" and run.ended is not None
+    assert run.failed_step == 1 and run.error == execute.ORPHAN_ERROR
+    assert [s["status"] for s in run.steps] == ["succeeded", "aborted", "pending"]
+
+
+def test_the_worker_aborts_and_closes_orphans_at_start(sim_stack, monkeypatch):
+    aborted = []
+
+    class Agent:
+        async def run_abort(self, run_id):
+            aborted.append(run_id)
+
+    monkeypatch.setattr(execute, "get_agent", Agent)
+    orphan, cli = orphan_run(), orphan_run()
+    Run.objects.filter(pk=cli.pk).update(job_id=None)  # ar3ctl: no job, maybe still running
+    live = orphan_run(Job.RUNNING)  # last: create_job refuses a second one while it is active
+    assert execute.close_orphans() == 1
+    orphan.refresh_from_db()
+    live.refresh_from_db()
+    cli.refresh_from_db()
+    assert (orphan.status, live.status, cli.status) == ("aborted", "running", "running")
+    assert aborted == [str(orphan.id)]  # the arm stops; the other two are left alone
+
+
+@pytest.mark.parametrize("status", [404, 0])  # the agent has forgotten the run; is not reachable
+def test_an_orphan_is_closed_whatever_the_agent_says(sim_stack, monkeypatch, status):
+    class Agent:
+        async def run_abort(self, run_id):
+            raise agent.AgentError(status, "no")
+
+    monkeypatch.setattr(execute, "get_agent", Agent)
+    run = orphan_run()
+    assert execute.close_orphans() == 1
+    run.refresh_from_db()
+    assert run.status == "aborted"
 
 
 def test_refused_without_a_stack_or_mode(fake_mode):

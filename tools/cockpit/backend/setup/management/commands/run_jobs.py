@@ -18,6 +18,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from monitoring.logs import install_handler
+from scenarios.execute import close_orphans
 from setup import executor
 from setup.models import Job
 
@@ -55,6 +56,9 @@ class Command(BaseCommand):
             log.warning(
                 "marked %d job(s) failed: they were running when the worker stopped", orphans
             )
+        runs = close_orphans()
+        if runs:
+            log.warning("closed %d scenario run(s) of those jobs as aborted", runs)
         if not once:
             threading.Thread(target=_refresh_index, name="assistant-index", daemon=True).start()
         asyncio.run(self.loop(once))

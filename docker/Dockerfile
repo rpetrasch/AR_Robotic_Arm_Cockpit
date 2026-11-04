@@ -90,6 +90,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       novnc \
       websockify \
     && rm -rf /var/lib/apt/lists/*
+# RViz fills the desktop, and the desktop follows the browser window, also on a plain /vnc.html.
+# Matched by title too: RViz's other windows (About, floating panels) have the same class.
+RUN sed -i 's#^</applications>#<application class="rviz2" type="normal" title="*RViz*"><decor>no</decor><maximized>true</maximized></application>\n&#' \
+      /etc/xdg/openbox/rc.xml \
+    && grep -q 'class="rviz2"' /etc/xdg/openbox/rc.xml \
+    && sed -i "s/initSetting('resize', 'off')/initSetting('resize', 'remote')/" /usr/share/novnc/app/ui.js \
+    && grep -q "initSetting('resize', 'remote')" /usr/share/novnc/app/ui.js
 COPY docker/vnc-start.sh /vnc-start.sh
 RUN chmod +x /vnc-start.sh
 ENV DISPLAY=:1
