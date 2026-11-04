@@ -52,6 +52,9 @@ ARM, GRIPPER = "arm", "gripper"
 POSITION_TOLERANCE_M = 0.001
 ORIENTATION_TOLERANCE_RAD = 0.01
 CALL_TIMEOUT_S = 5.0
+# The table is a link of the robot model: an object resting on it is a collision of the robot
+# with the scene, and RViz paints the table red. So MoveIt sees the objects this much higher.
+SCENE_CLEARANCE_M = 0.001
 SPAWN_TIMEOUT_MS = 5000
 CLI_TIMEOUT_S = 10.0
 ERRORS = {v: k for k, v in vars(MoveItErrorCodes).items() if k.isupper() and isinstance(v, int)}
@@ -196,6 +199,7 @@ class Runs:
         co.primitives.append(SolidPrimitive(type=PRIMITIVE[shape], dimensions=dims))
         pose = Pose()
         pose.position.x, pose.position.y, pose.position.z = xyz
+        pose.position.z += SCENE_CLEARANCE_M
         pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w = quat
         co.primitive_poses.append(pose)
         return co
@@ -533,17 +537,19 @@ class Run:
         if not self.runs.execute.wait_for_server(timeout_sec=5.0):
             raise StepFailed("/execute_trajectory not available")
         t1 = time.time()
+        sim1 = self.node.sim_time_s()
         send = self.runs.execute.send_goal_async(eg)
         if not _wait(send, CALL_TIMEOUT_S) or not send.result().accepted:
             raise StepFailed("move_group did not accept the trajectory")
         self._goal = send.result()
         try:
             res = self._goal.get_result_async()
-            deadline = time.time() + timeout
             while not res.done():
                 if self.aborted.is_set():
                     raise Aborted()
-                if time.time() > deadline:
+                sim_now = self.node.sim_time_s()
+                sim_s = sim_now - sim1 if sim1 is not None and sim_now is not None else None
+                if scenario.execution_overdue(timeout, time.time() - t1, sim_s):
                     self._goal.cancel_goal_async()
                     self.node.stop()
                     raise StepFailed(f"execution took longer than {timeout:.0f} s (3 × the plan)")

@@ -56,13 +56,26 @@ export class Recorder {
 
   /** Start recording `page` in live mode. */
   async start(page: Page): Promise<void> {
-    this.page = page;
-    this.cdp = await page.context().newCDPSession(page);
-    this.cdp.on("Page.screencastFrame", (frame) => {
-      if (this.mode === "live") this.saveFrame(frame.data);
-      this.cdp?.send("Page.screencastFrameAck", { sessionId: frame.sessionId }).catch(() => {});
-    });
+    await this.attach(page);
     writeFileSync(path.join(this.dir, "meta.json"), JSON.stringify({ size: this.size, started: new Date(this.t0).toISOString() }, null, 2));
+    await this.live();
+  }
+
+  private async attach(page: Page): Promise<void> {
+    this.page = page;
+    const cdp = await page.context().newCDPSession(page);
+    cdp.on("Page.screencastFrame", (frame) => {
+      if (this.mode === "live" && this.cdp === cdp) this.saveFrame(frame.data);
+      cdp.send("Page.screencastFrameAck", { sessionId: frame.sessionId }).catch(() => {});
+    });
+    this.cdp = cdp;
+  }
+
+  /** Go on recording another browser tab (live mode), which stays as it is, connected. */
+  async use(page: Page): Promise<void> {
+    if (this.mode === "live") await this.cdp!.send("Page.stopScreencast").catch(() => {});
+    await page.bringToFront();
+    await this.attach(page);
     await this.live();
   }
 

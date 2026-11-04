@@ -83,6 +83,17 @@ def test_names_steps_and_timeouts():
     with pytest.raises(ValueError):
         scenario.step_kind({"move_named": "home", "wait": 1})
     assert scenario.execution_timeout(2.0) == 10.0 and scenario.execution_timeout(20.0) == 60.0
+
+
+def test_execution_overdue_runs_on_the_simulation_clock():
+    assert not scenario.execution_overdue(30.0, wall_s=29.0)  # the real arm: wall clock
+    assert scenario.execution_overdue(30.0, wall_s=31.0)
+    # Gazebo at RTF 0.24: a 10 s plan takes 41 s of wall time and is on time
+    assert not scenario.execution_overdue(30.0, wall_s=41.0, sim_s=10.0)
+    assert scenario.execution_overdue(30.0, wall_s=125.0, sim_s=31.0)
+    # a frozen simulation still ends
+    assert not scenario.execution_overdue(30.0, wall_s=299.0, sim_s=2.0)
+    assert scenario.execution_overdue(30.0, wall_s=301.0, sim_s=2.0)
     assert scenario.describe(
         {"move_pose": {"x": 0.1, "y": 0, "z": 0.2, "planner": "pilz_lin"}}
     ) == ("move_pose (0.1, 0, 0.2) pilz_lin")

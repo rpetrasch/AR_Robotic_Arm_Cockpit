@@ -276,7 +276,7 @@ success: {all_steps_succeed: true, max_duration_s: 300}
   run is recorded (REC switches on). What the agent does: remove every `scn_*` planning-scene
   object and Gazebo model, move to the start pose, add the objects as collision objects and, in
   SIM · GAZEBO, spawn the `spawn: true` ones as Gazebo models (`scn_<id>`), then plan and execute
-  each step (a move is planned first and executed with a timeout of 3 × the planned duration),
+  each step (a move is planned first and executed with a timeout of 3 × the planned duration, on the simulation clock in Gazebo),
   read the objects' final Gazebo poses, clean up unless *keep the scene*.
 - *History*: per scenario every run with version, mode, user, start, duration, result, failed
   step; tick two to **compare** them step by step (status, planning and execution time) with

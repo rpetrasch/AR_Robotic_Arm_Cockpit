@@ -34,7 +34,7 @@ test("login panel: links to the project, no company branding, can be dragged", a
   await page.goto("/login/");
   const footer = page.getByTestId("login-project");
   await expect(footer).toHaveAttribute("href", "https://codeberg.org/AMDIS/AR_Robotic_Arm_Cockpit");
-  await expect(footer).toContainText("MIT");
+  await expect(footer).toContainText("Source available");
   await expect(page.locator('img[src*="amdisx"]')).toHaveCount(0);
   expect((await page.request.get("/brand/amdisx.png")).ok()).toBe(false);
   await expect(page.getByText(/powered by/i)).toHaveCount(0);

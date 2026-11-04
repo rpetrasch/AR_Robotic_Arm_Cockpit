@@ -187,9 +187,22 @@ def step_kind(step: dict) -> str:
     return kinds[0]
 
 
+WALL_TIMEOUT_FACTOR = 10.0
+
+
 def execution_timeout(trajectory_s: float) -> float:
     """§12.4: execution estimate × 3 (the planned duration), at least MIN_EXECUTION_TIMEOUT_S."""
     return max(MIN_EXECUTION_TIMEOUT_S, 3.0 * trajectory_s)
+
+
+def execution_overdue(timeout: float, wall_s: float, sim_s: float | None = None) -> bool:
+    """Is a running trajectory past its timeout? The plan's duration is in the controllers' time:
+    the simulation's clock if there is one (``sim_s``; Gazebo may run far below real time), else
+    the wall clock (the real arm). A simulation that stands still never reaches the timeout, so
+    the wall clock still ends it, at WALL_TIMEOUT_FACTOR × the timeout."""
+    if sim_s is None:
+        return wall_s > timeout
+    return sim_s > timeout or wall_s > WALL_TIMEOUT_FACTOR * timeout
 
 
 def describe(step: dict) -> str:

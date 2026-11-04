@@ -1,5 +1,5 @@
-import { execFileSync, spawn } from "node:child_process";
-import { readFileSync, utimesSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { Recorder } from "./recorder";
@@ -10,8 +10,6 @@ import { Recorder } from "./recorder";
 //
 // `make demo-video` runs it and renders. Environment:
 //   DEMO_OUT=<dir>       recording directory (default build/demo/<timestamp>)
-//   DEMO_EXECUTE=0       skip the real Install & Setup steps (workspace build, tests)
-//   DEMO_TESTS=0         run the workspace build but not `make test`
 //   DEMO_THEME=dark      the GUI in dark mode (playwright.demo.config.ts; default light)
 //   DEMO_REPO_URL=<url>  shown on the closing card
 //   DEMO_KEEP_STACK=1    leave the stack running afterwards
@@ -20,38 +18,41 @@ const FRONTEND = path.join(__dirname, "..", "..");
 const DATA = path.join(FRONTEND, ".e2e-data");
 const ENV = { ...process.env, COCKPIT_DATA_DIR: DATA };
 const OUT = process.env.DEMO_OUT ?? path.join(REPO, "build", "demo", new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19));
-const EXECUTE = process.env.DEMO_EXECUTE !== "0";
-const TESTS = process.env.DEMO_TESTS !== "0";
-const SERVICE = process.env.DEMO_SERVICE ?? "vnc"; // the compose service of RViz-in-the-browser stacks
 const USER = { name: "demo", password: "demo-pass-2026" };
-const CHAPTERS = 6;
+const CHAPTERS = 9;
+// The arm has to move through Simulations, Monitoring, RViz and Lichtblick: one tour is 1–3 min
+// of wall time, depending on Gazebo's real-time factor under the load of the viewers.
+const REPEATS = 3;
 
 function sh(cmd: string, args: string[]): string {
   return execFileSync(cmd, args, { cwd: REPO, encoding: "utf8", env: ENV });
 }
 
-/** A command in the running stack's ROS container; resolves when it ends. */
-function inStack(command: string): Promise<number> {
-  return new Promise((resolve) => {
-    const p = spawn("docker", ["compose", "-f", "docker/compose.yaml", "exec", "-T", SERVICE, "bash", "-ic", command], {
-      cwd: REPO,
-      env: ENV,
-      stdio: "inherit",
-    });
-    p.on("exit", (code) => resolve(code ?? 1));
-  });
+/** Scroll the page smoothly by `dy` pixels. In the page: under the load of the stack and the
+ * viewers, a mouse wheel event per step takes seconds instead of milliseconds. */
+async function scroll(page: Page, dy: number, ms = 2500) {
+  await page.evaluate(
+    ([dy, ms]) =>
+      new Promise<void>((done) => {
+        const from = window.scrollY;
+        const t0 = performance.now();
+        const tick = (now: number) => {
+          const f = Math.min(1, (now - t0) / ms);
+          window.scrollTo(0, from + dy * f);
+          if (f < 1) requestAnimationFrame(tick);
+          else done();
+        };
+        requestAnimationFrame(tick);
+      }),
+    [dy, ms],
+  );
 }
 
-const randomMoves = (count: number, seed: number, home = false) =>
-  inStack(`python3 /ar3_ws/tools/demo/random_moves.py --count ${count} --seed ${seed}${home ? " --home" : ""}`);
-
-/** Scroll the page (or the element under the pointer) smoothly by `dy` pixels. */
-async function scroll(page: Page, dy: number, ms = 2500) {
-  const steps = Math.max(1, Math.round(ms / 40));
-  for (let i = 0; i < steps; i++) {
-    await page.mouse.wheel(0, dy / steps);
-    await page.waitForTimeout(40);
-  }
+/** Click a viewer's Open button: its own browser tab, which stays connected from now on. */
+async function openViewer(page: Page, rec: Recorder, testId: string): Promise<Page> {
+  const [tab] = await Promise.all([page.context().waitForEvent("page"), page.getByTestId(testId).click()]);
+  await rec.use(tab);
+  return tab;
 }
 
 function card(title: string, subtitle: string, footer = ""): string {
@@ -62,7 +63,7 @@ function card(title: string, subtitle: string, footer = ""): string {
     <div style="width:150px;height:150px">${logo.replace("<svg ", '<svg width="150" height="150" ')}</div>
     <div style="font-size:64px;font-weight:800;letter-spacing:-1px">
       <span style="background:linear-gradient(90deg,#0d6efd,#6f42c1);-webkit-background-clip:text;color:transparent">AR3</span> Cockpit</div>
-    <div style="font-size:26px;opacity:.85;max-width:900px;text-align:center">${subtitle}</div>
+    <div style="font-size:26px;opacity:.85;max-width:1150px;text-align:center">${subtitle}</div>
     <div style="font-size:20px;opacity:.6;margin-top:24px">${footer}</div>
     <div style="display:none">${title}</div></body></html>`;
 }
@@ -99,9 +100,10 @@ test("AR3 Cockpit demo recording", async ({ page }) => {
 
   // --- sign in
   await rec.goto("/login/");
-  await rec.say("The AR3 Cockpit runs on your own computer, macOS or Ubuntu. The login screen shows the simulated arm and the real one.");
-  await page.getByLabel("Username").pressSequentially(USER.name, { delay: 70 });
-  await page.getByLabel("Password").pressSequentially(USER.password, { delay: 50 });
+  rec.caption("The AR3 Cockpit runs on your own computer, macOS or Ubuntu.");
+  await page.waitForTimeout(1500);
+  await page.getByLabel("Username").fill(USER.name);
+  await page.getByLabel("Password").fill(USER.password);
   await page.getByTestId("login-submit").click();
   await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 });
 
@@ -109,66 +111,13 @@ test("AR3 Cockpit demo recording", async ({ page }) => {
   await rec.goto("/setup/");
   rec.chapter(1, CHAPTERS, "Install & Setup", 3);
   await rec.say("Install & Setup checks everything the stack needs: host, Docker, images, workspace, tests and viewers.");
-  await page.getByTestId("recheck-all").click();
-  await page.mouse.move(640, 450);
-  await scroll(page, 900, 4000);
-  await rec.say("Every check shows the exact command behind it, so you can also run it yourself in a terminal.");
-  const cli = page.getByTestId("cli-images.dev");
-  await cli.scrollIntoViewIfNeeded();
-  await cli.click();
-  await page.waitForTimeout(2500);
-  await scroll(page, -2000, 1500);
-
-  if (EXECUTE) {
-    rec.gif(false);
-    // A source file changed: the workspace check notices and offers the rebuild.
-    const changed = path.join(REPO, "src", "ar3_bringup", "package.xml");
-    const now = new Date();
-    utimesSync(changed, now, now);
-    await rec.say("We changed a source file. After a re-check the cockpit says the workspace needs a rebuild, and offers to run it.");
-    await page.getByTestId("recheck-all").click();
-    const ws = page.getByTestId("check-ws.built");
-    await expect(ws).toHaveAttribute("data-status", "warn", { timeout: 30_000 });
-    await ws.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(2500);
-    await page.getByTestId("fix-ws.built").click();
-    await expect(page.getByTestId("job-page")).toBeVisible();
-    await rec.say("The step runs as a job with a live log. Known errors are matched and explained.");
-    rec.caption("colcon builds the workspace inside the dev container.");
-    rec.speed(8);
-    await rec.lapse(500);
-    await expect(page.getByTestId("job-page")).toHaveAttribute("data-status", /succeeded|failed/, { timeout: 20 * 60_000 });
-    await rec.live();
-    await rec.say("Done. The check is green again.");
-
-    if (TESTS) {
-      await rec.goto("/setup/");
-      const tests = page.getByTestId("check-tests.last");
-      const status = await tests.getAttribute("data-status");
-      if (status === "warn" || status === "fail") {
-        await tests.scrollIntoViewIfNeeded();
-        await rec.say("The test check offers to run the unit and integration tests.");
-        await page.getByTestId("fix-tests.last").click();
-      } else {
-        const csrf = (await page.context().cookies()).find((c) => c.name === "csrftoken")!.value;
-        const res = await page.request.post("/api/jobs", { data: { step_id: "tests.run" }, headers: { "X-CSRFToken": csrf } });
-        await rec.goto(`/setup/job/?id=${(await res.json()).id}`);
-      }
-      await expect(page.getByTestId("job-page")).toBeVisible();
-      rec.caption("make test: unit tests and mock integration tests, the same as in CI.");
-      rec.speed(20);
-      await rec.lapse(1000);
-      await expect(page.getByTestId("job-page")).toHaveAttribute("data-status", /succeeded|failed/, { timeout: 40 * 60_000 });
-      await rec.live();
-      await rec.say("The tests pass. The checklist is complete.");
-    }
-    rec.gif(3);
-  }
+  await scroll(page, 900, 2500);
+  await page.waitForTimeout(800);
 
   // --- 2. Environment
   await rec.goto("/environment/");
   rec.chapter(2, CHAPTERS, "Environment", 4);
-  await rec.say("Environment starts and stops a ROS stack. The cockpit detects the host and offers only the modes that work on it.");
+  await rec.say("Environment starts and stops a ROS stack, in the modes that work on this host.");
   await page.getByTestId("robot-gazebo").click();
   await page.waitForTimeout(700);
   await page.getByTestId("rviz").click();
@@ -181,84 +130,96 @@ test("AR3 Cockpit demo recording", async ({ page }) => {
   rec.speed(6);
   rec.gif(12);
   await rec.lapse(500);
-  await expect(page.getByTestId("env-job-status")).toHaveText(/succeeded|failed|timeout/, { timeout: 10 * 60_000 });
+  await expect(page.getByTestId("env-job-status")).toHaveText(/succeeded/, { timeout: 10 * 60_000 });
   await expect(page.getByTestId("env-ready")).toBeVisible({ timeout: 3 * 60_000 });
   await rec.live();
   rec.gif(4);
   await rec.say("Ready. The header shows the mode, the status and links to the viewers, on every page.");
   await page.getByTestId("tab-components").click();
-  await rec.say("What runs where: every component of this mode, with its ports and the commands to start, stop and inspect it.");
-  await page.mouse.move(640, 500);
-  await scroll(page, 700, 3500);
-  await page.waitForTimeout(1500);
-  await scroll(page, -700, 1500);
+  // The whole diagram, just below the header. Only once it is drawn: until then the card is short.
+  const diagram = page.getByTestId("diagram");
+  await expect(diagram.getByTestId("node-move_group")).toBeVisible({ timeout: 15_000 });
+  await scroll(page, (await diagram.boundingBox())!.y - 70, 1200);
+  await page.waitForTimeout(300);
+  const box = (await diagram.boundingBox())!;
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+  expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  rec.chapter(3, CHAPTERS, "What runs where", 1.5);
+  await rec.say("What runs where: every component of this mode, in its layer, and how they connect.", 7000);
+
+  // --- 4. Both viewers, each in its own tab
+  await page.evaluate(() => window.scrollTo({ top: 0 }));
   await page.getByTestId("tab-viewers").click();
+  rec.chapter(4, CHAPTERS, "Viewers", 3);
   await rec.say("The viewers: RViz with MoveIt's planning panel in the browser, and Lichtblick connected to the robot.");
-  const novnc = await page.getByTestId("open-novnc").getAttribute("href");
-  const lichtblick = await page.getByTestId("open-lichtblick_web").getAttribute("href");
-
-  // --- 3. RViz
-  rec.chapter(3, CHAPTERS, "RViz in the browser", 3);
-  const vnc = new URL(novnc!);
-  vnc.searchParams.set("autoconnect", "1");
-  vnc.searchParams.set("resize", "scale");
-  await rec.goto(vnc.toString());
-  await page.waitForTimeout(5000);
+  // Scale the 1600×900 desktop into the tab: at 1280×720 RViz's panels do not fit.
+  await page.getByTestId("open-novnc").evaluate((a: HTMLAnchorElement) => {
+    const url = new URL(a.href);
+    url.searchParams.set("resize", "scale");
+    a.href = url.toString();
+  });
+  const rviz = await openViewer(page, rec, "open-novnc");
+  await rviz.waitForTimeout(5000);
   await rec.say("RViz runs in the ROS container and appears in the browser through noVNC.");
-  rec.caption("A script sends MoveIt the goal 'home': RViz shows the plan, Gazebo executes it.");
-  await inStack("ros2 run ar3_bringup move_to_named home");
-  await page.waitForTimeout(1000);
-  rec.caption("Now random joint goals: MoveIt plans collision-free paths and the arm follows.");
-  await randomMoves(3, 7);
-  await page.waitForTimeout(1500);
+  await rec.use(page);
+  await page.waitForTimeout(800);
+  const lichtblick = await openViewer(page, rec, "open-lichtblick_web");
+  await lichtblick.waitForTimeout(6000);
+  await lichtblick.keyboard.press("Escape"); // a first-run dialog, if any
+  await rec.say("Lichtblick connects to foxglove_bridge: the robot model, TF frames and joint states, live.");
+  await rec.use(page);
 
-  // --- 4. Lichtblick
-  rec.chapter(4, CHAPTERS, "Lichtblick", 3);
-  await rec.goto(lichtblick!);
-  await page.waitForTimeout(6000);
-  await page.keyboard.press("Escape"); // a first-run dialog, if any
-  rec.caption("Lichtblick connects to foxglove_bridge: the robot model, TF frames, joint states and camera images, live.");
-  await randomMoves(3, 11);
-  await page.waitForTimeout(1500);
+  // --- 5. Simulations
+  await rec.goto("/simulations/run/?id=tour-three-objects");
+  rec.chapter(5, CHAPTERS, "Simulations", 3);
+  await rec.say("Tour over three objects: three objects are spawned in Gazebo, then the arm moves over them, step by step.");
+  await page.getByLabel("Repeat").fill(String(REPEATS));
+  await page.getByTestId("run-start").click();
+  await expect(page.getByTestId("live-run")).toBeVisible({ timeout: 30_000 });
+  await rec.say("Each step is planned and executed, and the 3D view follows the arm. Now the same run from three other angles.", 12_000);
 
-  // --- 5. Monitoring
+  // --- 6. Monitoring: the telemetry of the run
   await rec.goto("/monitoring/?tab=telemetry");
-  rec.chapter(5, CHAPTERS, "Monitoring", 3);
-  const moving = randomMoves(5, 23, true);
+  rec.chapter(6, CHAPTERS, "Monitoring", 3);
   await expect
     .poll(async () => Number(await page.getByTestId("chart-positions").getAttribute("data-points")), { timeout: 60_000 })
     .toBeGreaterThan(30);
-  await rec.say("Monitoring shows the telemetry at 10 Hz: joint positions and velocities, commanded against actual.");
+  await rec.say("Monitoring shows the telemetry of the run at 10 Hz: joint positions and velocities, commanded against actual.", 8000);
   rec.poster();
-  await page.mouse.move(640, 500);
-  await scroll(page, 600, 4000);
+  await scroll(page, 900, 4000);
   await rec.say("Further down: the robot in 3D, the cameras and the topic rates. Everything is also recorded in TimescaleDB.");
-  await scroll(page, 900, 5000);
-  await page.waitForTimeout(3000);
-  await scroll(page, -1500, 2000);
-  await moving;
+  await scroll(page, -900, 1500);
 
-  // --- 6. Simulations
-  await rec.goto("/simulations/edit/?id=tour-three-objects");
-  rec.chapter(6, CHAPTERS, "Simulations", 4);
-  await rec.say("Simulations are MoveIt scenarios: objects on the table, a start pose and a sequence of steps, edited as a form or as YAML.");
-  await page.waitForTimeout(2000);
-  await rec.goto("/simulations/run/?id=tour-three-objects");
-  await rec.say("Tour over three objects: three objects are spawned in Gazebo, then the arm moves over them, step by step.");
-  await page.getByTestId("run-start").click();
-  await expect(page.getByTestId("live-run")).toBeVisible({ timeout: 30_000 });
-  rec.caption("Each step is planned and executed; the run is evaluated against its success criteria.");
-  rec.speed(2);
-  rec.gif(6);
-  await expect(page.getByTestId("run-status")).toHaveText(/succeeded|failed|aborted/, { timeout: 10 * 60_000 });
-  rec.gif(3);
-  await rec.say("Succeeded. The run is kept in the history, with timings per step, to compare runs.");
-  await page.getByTestId("run-history").scrollIntoViewIfNeeded();
-  await page.waitForTimeout(2500);
+  // --- 7. The same movement in RViz
+  rec.chapter(7, CHAPTERS, "RViz", 3);
+  await rec.use(rviz);
+  await rec.say("The same run in RViz: MoveIt's plans and the arm following them, with the objects in the planning scene.", 22_000);
+
+  // --- 8. The same movement in Lichtblick
+  rec.chapter(8, CHAPTERS, "Lichtblick", 3);
+  await rec.use(lichtblick);
+  await rec.say("And in Lichtblick, on the same live data.", 22_000);
+
+  // --- 9. ROS graph
+  await rec.use(page);
+  rec.chapter(9, CHAPTERS, "ROS graph", 3);
+  await page.evaluate(() => window.scrollTo({ top: 0 }));
+  await page.getByTestId("tab-graph").click();
+  await expect(page.getByTestId("graph-topics")).toContainText("/joint_states", { timeout: 15_000 });
+  await rec.say("The ROS graph of the running stack: nodes, topics, services and actions.");
+  await page.getByTestId("node-/move_group").click();
+  await expect(page.getByTestId("node-params")).toContainText("use_sim_time", { timeout: 15_000 });
+  await page.getByTestId("node-detail").evaluate((el) => el.scrollIntoView({ behavior: "smooth", block: "start" }));
+  await rec.say("Click a node: move_group with its publishers, subscribers and parameters, read live.", 5000);
+
+  // A failed move in the recording must not end up in the README.
+  const runs = await (await page.request.get("/api/scenarios/tour-three-objects/runs")).json();
+  expect(runs.filter((r: { status: string }) => !["succeeded", "running"].includes(r.status))).toEqual([]);
 
   // --- closing card
   rec.clear();
-  await page.setContent(card("outro", "Open source (MIT) · ROS 2 Jazzy · MoveIt 2 · Gazebo Harmonic", process.env.DEMO_REPO_URL ?? ""));
+  await page.setContent(card("outro", "Source available • ROS 2 Jazzy • RViz • MoveIt 2 • Gazebo Harmonic • Lichtblick", process.env.DEMO_REPO_URL ?? ""));
   await rec.live();
   rec.gif(1.5);
   await page.waitForTimeout(4000);

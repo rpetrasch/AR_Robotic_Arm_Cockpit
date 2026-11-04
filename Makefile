@@ -204,7 +204,7 @@ help:            ## list the targets with their descriptions (default: plain `ma
 # DEMO_THEME=dark records the GUI in dark mode.
 RENDER = uv run --no-project --with pillow python tools/demo/render.py
 demo-video: DEMO_DIR := $(CURDIR)/build/demo/$(shell date +%Y%m%d-%H%M%S)
-demo-video:      ## record the cockpit demo on this host and render the videos (~30-45 min) -> build/demo/<time>/out
+demo-video:      ## record the cockpit demo on this host and render the videos (~10-15 min) -> build/demo/<time>/out
 	cd tools/cockpit/frontend && npm run build && \
 	  DEMO_OUT=$(DEMO_DIR) npx playwright test -c playwright.demo.config.ts
 	$(RENDER) $(DEMO_DIR) $(RENDER_ARGS)

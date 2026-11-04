@@ -27,7 +27,7 @@ const en = {
   "login.submit": "Sign in",
   "login.failed": "Invalid username or password.",
   "login.throttled": "Too many attempts. Wait {s} s, then try again.",
-  "login.project": "AR3 on Codeberg · MIT licence",
+  "login.project": "AR3 on Codeberg · Source available",
   "login.sim": "Simulation",
   "login.real": "Real",
   "login.realPending": "real video pending",

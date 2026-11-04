@@ -413,6 +413,11 @@ class AgentNode(Node):
         with self._state_lock:
             return list(self._names)
 
+    def sim_time_s(self) -> float | None:
+        """The latest /clock in seconds; None without /clock (the real arm)."""
+        with self._state_lock:
+            return self._clock_window[-1][1] / 1e9 if self._clock_window else None
+
     def rtf(self) -> float | None:
         """Sim real-time factor over the last 2 s of /clock; None without /clock."""
         with self._state_lock:
